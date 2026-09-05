@@ -17,7 +17,7 @@ import { CustomerLayout } from '../shared/components/layout/CustomerLayout';
 import { CustomerPortal } from '../features/portal/pages/CustomerPortal';
 
 // Layouts and Pages will be imported here later
-const DummyPage = ({ title }: { title: string }) => <div className="p-8 text-2xl text-white">{title}</div>;
+const DummyPage = ({ title }: { title: string }) => <div className="p-8 text-2xl text-text-main">{title}</div>;
 
 export const AppRouter = () => {
   return (

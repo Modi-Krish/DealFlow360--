@@ -18,29 +18,35 @@ def user_to_response(user: User) -> UserResponse:
 
 @router.post("/signup", response_model=StandardResponse[UserResponse])
 async def signup(user_data: UserCreate):
-    existing_user = await User.find_one(User.email == user_data.email)
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    try:
+        existing_user = await User.find_one({"email": user_data.email})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+            
+        new_user = User(
+            name=user_data.name,
+            email=user_data.email,
+            password_hash=get_password_hash(user_data.password),
+            role=user_data.role,
+            is_active=True
+        )
         
-    new_user = User(
-        name=user_data.name,
-        email=user_data.email,
-        password_hash=get_password_hash(user_data.password),
-        role=user_data.role,
-        is_active=True
-    )
-    
-    await new_user.insert()
-    
-    return StandardResponse(
-        success=True,
-        message="User created successfully",
-        data=user_to_response(new_user)
-    )
+        await new_user.insert()
+        
+        return StandardResponse(
+            success=True,
+            message="User created successfully",
+            data=user_to_response(new_user)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/login", response_model=StandardResponse[Token])
 async def login(user_data: UserLogin):
-    user = await User.find_one(User.email == user_data.email)
+    user = await User.find_one({"email": user_data.email})
     
     if not user or not verify_password(user_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect email or password")

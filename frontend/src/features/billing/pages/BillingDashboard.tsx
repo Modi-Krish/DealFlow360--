@@ -31,8 +31,8 @@ export const BillingDashboard = () => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Billing & Subscriptions</h2>
-          <p className="text-sm text-slate-400 mt-1">Manage orders, recurring billing, and invoices</p>
+          <h2 className="text-2xl font-bold text-text-main tracking-tight">Billing & Subscriptions</h2>
+          <p className="text-sm text-text-muted mt-1">Manage orders, recurring billing, and invoices</p>
         </div>
       </div>
 
@@ -42,8 +42,8 @@ export const BillingDashboard = () => {
             <FileText className="h-16 w-16 text-primary" />
           </div>
           <div className="relative z-10">
-            <p className="text-sm font-medium text-slate-400 mb-1">Total Orders</p>
-            <p className="text-3xl font-semibold text-white">{orders?.length || 0}</p>
+            <p className="text-sm font-medium text-text-muted mb-1">Total Orders</p>
+            <p className="text-3xl font-semibold text-text-main">{orders?.length || 0}</p>
           </div>
         </div>
         
@@ -52,8 +52,8 @@ export const BillingDashboard = () => {
             <Repeat className="h-16 w-16 text-emerald-500" />
           </div>
           <div className="relative z-10">
-            <p className="text-sm font-medium text-slate-400 mb-1">Active Subscriptions</p>
-            <p className="text-3xl font-semibold text-white">{subscriptions?.length || 0}</p>
+            <p className="text-sm font-medium text-text-muted mb-1">Active Subscriptions</p>
+            <p className="text-3xl font-semibold text-text-main">{subscriptions?.length || 0}</p>
           </div>
         </div>
         
@@ -62,24 +62,24 @@ export const BillingDashboard = () => {
             <CreditCard className="h-16 w-16 text-blue-500" />
           </div>
           <div className="relative z-10">
-            <p className="text-sm font-medium text-slate-400 mb-1">Generated Invoices</p>
-            <p className="text-3xl font-semibold text-white">{invoices?.length || 0}</p>
+            <p className="text-sm font-medium text-text-muted mb-1">Generated Invoices</p>
+            <p className="text-3xl font-semibold text-text-main">{invoices?.length || 0}</p>
           </div>
         </div>
       </div>
 
       {/* Convert Quotations to Orders section */}
       <div className="card">
-        <h3 className="text-lg font-medium text-white mb-4">Quotations Ready for Billing (Allocated)</h3>
+        <h3 className="text-lg font-medium text-text-main mb-4">Quotations Ready for Billing (Allocated)</h3>
         {pendingBillingQuotations?.length === 0 ? (
-          <p className="text-slate-400 text-sm">No allocated quotations ready to be converted into orders.</p>
+          <p className="text-text-muted text-sm">No allocated quotations ready to be converted into orders.</p>
         ) : (
           <div className="space-y-4">
             {pendingBillingQuotations?.map((q: any) => (
-              <div key={q.id} className="border border-slate-700 rounded-lg p-4 bg-slate-800/50 flex justify-between items-center">
+              <div key={q.id} className="border border-border-light rounded-lg p-4 bg-slate-50/50 flex justify-between items-center">
                 <div>
-                  <h4 className="text-white font-medium">{q.quotation_number}</h4>
-                  <p className="text-sm text-slate-400">Total: ${q.grand_total} | Customer: {q.customer?.name || q.customer_id}</p>
+                  <h4 className="text-text-main font-medium">{q.quotation_number}</h4>
+                  <p className="text-sm text-text-muted">Total: ${q.grand_total} | Customer: {q.customer?.name || q.customer_id}</p>
                 </div>
                 <button 
                   onClick={() => processMutation.mutate(q.id)}
@@ -97,25 +97,25 @@ export const BillingDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-0">
-          <div className="p-4 border-b border-slate-700 bg-slate-800/50 rounded-t-lg">
-            <h3 className="text-lg font-medium text-white">Recent Orders</h3>
+          <div className="p-4 border-b border-border-light bg-slate-50/50 rounded-t-lg">
+            <h3 className="text-lg font-medium text-text-main">Recent Orders</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-700">
-              <thead className="bg-slate-800/50">
+              <thead className="bg-slate-50/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Order Number</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase">Order Number</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase">Status</th>
                 </tr>
               </thead>
-              <tbody className="bg-surface divide-y divide-slate-700">
+              <tbody className="bg-white divide-y divide-slate-700">
                 {loadingOrders ? (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-400">Loading...</td></tr>
+                  <tr><td colSpan={3} className="px-4 py-8 text-center text-text-muted">Loading...</td></tr>
                 ) : orders?.slice(0, 5).map((order: any) => (
-                  <tr key={order.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-white font-medium">{order.order_number}</td>
-                    <td className="px-4 py-3 text-sm text-slate-300">${order.total_amount}</td>
+                  <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 text-sm text-text-main font-medium">{order.order_number}</td>
+                    <td className="px-4 py-3 text-sm text-text-main">${order.total_amount}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
                         {order.status}
@@ -129,25 +129,25 @@ export const BillingDashboard = () => {
         </div>
 
         <div className="card p-0">
-          <div className="p-4 border-b border-slate-700 bg-slate-800/50 rounded-t-lg">
-            <h3 className="text-lg font-medium text-white">Recent Invoices</h3>
+          <div className="p-4 border-b border-border-light bg-slate-50/50 rounded-t-lg">
+            <h3 className="text-lg font-medium text-text-main">Recent Invoices</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-700">
-              <thead className="bg-slate-800/50">
+              <thead className="bg-slate-50/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Invoice</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Due</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase">Invoice</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase">Due</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted uppercase">Status</th>
                 </tr>
               </thead>
-              <tbody className="bg-surface divide-y divide-slate-700">
+              <tbody className="bg-white divide-y divide-slate-700">
                 {loadingInvoices ? (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-400">Loading...</td></tr>
+                  <tr><td colSpan={3} className="px-4 py-8 text-center text-text-muted">Loading...</td></tr>
                 ) : invoices?.slice(0, 5).map((invoice: any) => (
-                  <tr key={invoice.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-white font-medium">{invoice.invoice_number}</td>
-                    <td className="px-4 py-3 text-sm text-slate-300">${invoice.amount_due}</td>
+                  <tr key={invoice.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 text-sm text-text-main font-medium">{invoice.invoice_number}</td>
+                    <td className="px-4 py-3 text-sm text-text-main">${invoice.amount_due}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${
                         invoice.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'

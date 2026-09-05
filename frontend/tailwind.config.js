@@ -7,11 +7,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#0F172A',
-        surface: '#1E293B',
-        primary: '#3B82F6',
-        secondary: '#64748B',
-        accent: '#38BDF8',
+        background: '#F8FAFC', // slate-50
+        surface: '#FFFFFF',    // white
+        primary: '#059669',    // emerald-600
+        'primary-light': '#ECFDF5', // emerald-50
+        'text-main': '#0F172A', // slate-900
+        'text-muted': '#64748B', // slate-500
+        'border-light': '#E2E8F0', // slate-200
         danger: '#EF4444',
         warning: '#F59E0B',
         success: '#10B981',

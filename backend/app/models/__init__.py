@@ -1,4 +1,4 @@
-from app.models.base import Base, BaseModel
+from app.models.base import BaseModel
 from app.models.user import User
 from app.models.audit import AuditLog
 from app.models.category import Category

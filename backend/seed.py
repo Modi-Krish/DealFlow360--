@@ -33,28 +33,23 @@ async def seed_data():
     await User.insert_many([admin, sales_rep, sales_manager, ops])
     
     print("Creating Categories & Products...")
-    software_cat = Category(name="Software Licenses", description="Enterprise software")
-    hardware_cat = Category(name="Hardware", description="Server and networking equipment")
-    await Category.insert_many([software_cat, hardware_cat])
+    software_cat = await Category(name="Software Licenses", description="Enterprise software").insert()
+    hardware_cat = await Category(name="Hardware", description="Server and networking equipment").insert()
     
-    prod1 = Product(name="Enterprise Cloud CRM", sku="CRM-ENT-001", base_price=Decimal("150.00"), category=software_cat, unit="month", is_active=True)
-    prod2 = Product(name="Analytics Pro API", sku="API-PRO-002", base_price=Decimal("500.00"), category=software_cat, unit="month", is_active=True)
-    prod3 = Product(name="Edge Server 1U", sku="HW-SRV-100", base_price=Decimal("2400.00"), category=hardware_cat, unit="unit", is_active=True)
-    await Product.insert_many([prod1, prod2, prod3])
+    prod1 = await Product(name="Enterprise Cloud CRM", sku="CRM-ENT-001", base_price=Decimal("150.00"), category=software_cat, unit="month", is_active=True).insert()
+    prod2 = await Product(name="Analytics Pro API", sku="API-PRO-002", base_price=Decimal("500.00"), category=software_cat, unit="month", is_active=True).insert()
+    prod3 = await Product(name="Edge Server 1U", sku="HW-SRV-100", base_price=Decimal("2400.00"), category=hardware_cat, unit="unit", is_active=True).insert()
     
     print("Creating Warehouses & Inventory...")
-    wh1 = Warehouse(name="US East (N. Virginia)", location="Virginia", is_active=True)
-    wh2 = Warehouse(name="EU Central (Frankfurt)", location="Germany", is_active=True)
-    await Warehouse.insert_many([wh1, wh2])
+    wh1 = await Warehouse(name="US East (N. Virginia)", location="Virginia", is_active=True).insert()
+    wh2 = await Warehouse(name="EU Central (Frankfurt)", location="Germany", is_active=True).insert()
     
-    inv1 = Inventory(warehouse=wh1, product=prod3, quantity_on_hand=50, quantity_allocated=0)
-    inv2 = Inventory(warehouse=wh2, product=prod3, quantity_on_hand=20, quantity_allocated=0)
-    await Inventory.insert_many([inv1, inv2])
+    inv1 = await Inventory(warehouse=wh1, product=prod3, quantity_on_hand=50, quantity_allocated=0).insert()
+    inv2 = await Inventory(warehouse=wh2, product=prod3, quantity_on_hand=20, quantity_allocated=0).insert()
     
     print("Creating Customers...")
-    cust1 = Customer(name="Acme Corp", email="procurement@acmecorp.com", customer_tier="GOLD")
-    cust2 = Customer(name="Stark Industries", email="tony@stark.com", customer_tier="SILVER")
-    await Customer.insert_many([cust1, cust2])
+    cust1 = await Customer(name="Acme Corp", email="procurement@acmecorp.com", customer_tier="GOLD").insert()
+    cust2 = await Customer(name="Stark Industries", email="tony@stark.com", customer_tier="SILVER").insert()
     
     print("Creating Pricing Lists...")
     q4_promo = PriceList(

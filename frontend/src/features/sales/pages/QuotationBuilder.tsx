@@ -46,8 +46,8 @@ export const QuotationBuilder = () => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Quotation Builder</h2>
-          <p className="text-sm text-slate-400 mt-1">Create and manage sales quotations</p>
+          <h2 className="text-2xl font-bold text-text-main tracking-tight">Quotation Builder</h2>
+          <p className="text-sm text-text-muted mt-1">Create and manage sales quotations</p>
         </div>
         {!activeQuotation && (
           <button onClick={handleCreate} disabled={!selectedCustomer} className="btn-primary flex items-center disabled:opacity-50">
@@ -59,9 +59,9 @@ export const QuotationBuilder = () => {
 
       {!activeQuotation ? (
         <div className="card max-w-xl">
-          <h3 className="text-lg font-medium text-white mb-4">Select Customer</h3>
+          <h3 className="text-lg font-medium text-text-main mb-4">Select Customer</h3>
           <select 
-            className="w-full bg-slate-800 border border-slate-700 rounded p-3 text-white focus:border-primary focus:outline-none transition-colors"
+            className="w-full bg-slate-50 border border-border-light rounded p-3 text-text-main focus:border-primary focus:outline-none transition-colors"
             value={selectedCustomer}
             onChange={(e) => setSelectedCustomer(e.target.value)}
           >
@@ -78,35 +78,35 @@ export const QuotationBuilder = () => {
             <div className="card">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-lg font-medium text-white">Quotation #{activeQuotation.quotation_number}</h3>
-                  <p className="text-sm text-slate-400">Status: <span className="text-accent">{activeQuotation.status}</span></p>
+                  <h3 className="text-lg font-medium text-text-main">Quotation #{activeQuotation.quotation_number}</h3>
+                  <p className="text-sm text-text-muted">Status: <span className="text-accent">{activeQuotation.status}</span></p>
                 </div>
               </div>
               
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-700">
-                  <thead className="bg-slate-800/50">
+                  <thead className="bg-slate-50/50">
                     <tr>
-                      <th className="px-4 py-2 text-left text-xs text-slate-400">Product</th>
-                      <th className="px-4 py-2 text-left text-xs text-slate-400">Qty</th>
-                      <th className="px-4 py-2 text-left text-xs text-slate-400">Unit Price</th>
-                      <th className="px-4 py-2 text-left text-xs text-slate-400">Disc %</th>
-                      <th className="px-4 py-2 text-right text-xs text-slate-400">Total</th>
+                      <th className="px-4 py-2 text-left text-xs text-text-muted">Product</th>
+                      <th className="px-4 py-2 text-left text-xs text-text-muted">Qty</th>
+                      <th className="px-4 py-2 text-left text-xs text-text-muted">Unit Price</th>
+                      <th className="px-4 py-2 text-left text-xs text-text-muted">Disc %</th>
+                      <th className="px-4 py-2 text-right text-xs text-text-muted">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700">
                     {activeQuotation.items?.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-slate-400">No items added yet.</td>
+                        <td colSpan={5} className="px-4 py-8 text-center text-text-muted">No items added yet.</td>
                       </tr>
                     ) : (
                       activeQuotation.items?.map((item: any) => (
                         <tr key={item.id}>
-                          <td className="px-4 py-3 text-sm text-white">{item.product_id}</td>
-                          <td className="px-4 py-3 text-sm"><input type="number" defaultValue={item.quantity} className="w-16 bg-slate-800 border-slate-700 rounded px-2 py-1 text-white" /></td>
-                          <td className="px-4 py-3 text-sm text-slate-300">${item.unit_price}</td>
-                          <td className="px-4 py-3 text-sm"><input type="number" defaultValue={item.discount_percent} className="w-16 bg-slate-800 border-slate-700 rounded px-2 py-1 text-white" /></td>
-                          <td className="px-4 py-3 text-sm text-right text-white font-medium">${item.line_total}</td>
+                          <td className="px-4 py-3 text-sm text-text-main">{item.product_id}</td>
+                          <td className="px-4 py-3 text-sm"><input type="number" defaultValue={item.quantity} className="w-16 bg-slate-50 border-border-light rounded px-2 py-1 text-text-main" /></td>
+                          <td className="px-4 py-3 text-sm text-text-main">${item.unit_price}</td>
+                          <td className="px-4 py-3 text-sm"><input type="number" defaultValue={item.discount_percent} className="w-16 bg-slate-50 border-border-light rounded px-2 py-1 text-text-main" /></td>
+                          <td className="px-4 py-3 text-sm text-right text-text-main font-medium">${item.line_total}</td>
                         </tr>
                       ))
                     )}
@@ -116,17 +116,17 @@ export const QuotationBuilder = () => {
             </div>
 
             <div className="card">
-              <h3 className="text-lg font-medium text-white mb-4">Product Catalog</h3>
+              <h3 className="text-lg font-medium text-text-main mb-4">Product Catalog</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {products?.map((p: any) => (
-                  <div key={p.id} className="border border-slate-700 rounded-lg p-3 hover:border-slate-500 transition-colors flex justify-between items-center">
+                  <div key={p.id} className="border border-border-light rounded-lg p-3 hover:border-slate-500 transition-colors flex justify-between items-center">
                     <div>
-                      <p className="text-sm font-medium text-white">{p.name}</p>
-                      <p className="text-xs text-slate-400">${p.base_price}</p>
+                      <p className="text-sm font-medium text-text-main">{p.name}</p>
+                      <p className="text-xs text-text-muted">${p.base_price}</p>
                     </div>
                     <button 
                       onClick={() => handleAddItem(p.id)}
-                      className="p-2 bg-slate-800 hover:bg-primary text-white rounded transition-colors"
+                      className="p-2 bg-slate-50 hover:bg-primary text-text-main rounded transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -139,30 +139,30 @@ export const QuotationBuilder = () => {
           {/* Sidebar Summary */}
           <div className="space-y-6">
             <div className="card">
-              <h3 className="text-lg font-medium text-white mb-4 flex items-center">
+              <h3 className="text-lg font-medium text-text-main mb-4 flex items-center">
                 <ShoppingCart className="w-5 h-5 mr-2 text-primary" />
                 Summary
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Subtotal</span>
-                  <span className="text-white">${activeQuotation.subtotal}</span>
+                  <span className="text-text-muted">Subtotal</span>
+                  <span className="text-text-main">${activeQuotation.subtotal}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Discount</span>
+                  <span className="text-text-muted">Discount</span>
                   <span className="text-danger">-${activeQuotation.discount_total}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Tax</span>
-                  <span className="text-white">${activeQuotation.tax_total}</span>
+                  <span className="text-text-muted">Tax</span>
+                  <span className="text-text-main">${activeQuotation.tax_total}</span>
                 </div>
-                <div className="border-t border-slate-700 pt-3 flex justify-between">
-                  <span className="text-white font-medium">Grand Total</span>
-                  <span className="text-white font-bold text-lg">${activeQuotation.grand_total}</span>
+                <div className="border-t border-border-light pt-3 flex justify-between">
+                  <span className="text-text-main font-medium">Grand Total</span>
+                  <span className="text-text-main font-bold text-lg">${activeQuotation.grand_total}</span>
                 </div>
                 
-                <div className="bg-slate-800/50 p-3 rounded-lg mt-4 flex justify-between items-center border border-slate-700">
-                  <span className="text-sm text-slate-300 flex items-center">
+                <div className="bg-slate-50/50 p-3 rounded-lg mt-4 flex justify-between items-center border border-border-light">
+                  <span className="text-sm text-text-main flex items-center">
                     <TrendingUp className="w-4 h-4 mr-2 text-success" />
                     Est. Margin
                   </span>

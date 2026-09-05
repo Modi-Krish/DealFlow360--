@@ -4,15 +4,18 @@
 
 @layer base {
   body {
-    @apply bg-background text-white antialiased;
+    @apply bg-slate-50 text-slate-900 antialiased;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition-colors;
+    @apply bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm;
   }
   .card {
-    @apply bg-surface rounded-lg shadow-lg border border-slate-700 p-4;
+    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6;
+  }
+  .badge {
+    @apply px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
 }

@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../shared/store/authStore';
-import { LayoutDashboard, Users, Package, Tags, CreditCard, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Tags, CreditCard, LogOut, TrendingUp } from 'lucide-react';
 
 export const AdminLayout = () => {
   const location = useLocation();
@@ -17,16 +17,21 @@ export const AdminLayout = () => {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <div className="w-64 bg-surface border-r border-slate-700 flex flex-col">
-        <div className="h-16 flex items-center px-6 border-b border-slate-700">
-          <h1 className="text-xl font-bold text-white tracking-wide">DealFlow360</h1>
+      <div className="w-64 bg-white border-r border-border-light flex flex-col">
+        <div className="h-16 flex items-center px-6 border-b border-border-light">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary p-1.5 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-text-main" />
+            </div>
+            <h1 className="text-xl font-bold text-text-main tracking-tight">DealFlow360</h1>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto py-4">
-          <div className="px-4 mb-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Admin</p>
+          <div className="px-6 mb-4">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Admin</p>
           </div>
-          <nav className="space-y-1 px-2">
+          <nav className="space-y-1 px-3">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname.startsWith(item.path);
@@ -34,13 +39,13 @@ export const AdminLayout = () => {
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                     isActive 
-                      ? 'bg-primary text-white' 
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      ? 'bg-primary-light text-primary' 
+                      : 'text-text-muted hover:bg-slate-50 hover:text-text-main'
                   }`}
                 >
-                  <Icon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'}`} />
+                  <Icon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary' : 'text-text-muted group-hover:text-slate-500'}`} />
                   {item.name}
                 </Link>
               );
@@ -48,21 +53,21 @@ export const AdminLayout = () => {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-700">
-          <div className="flex items-center mb-4">
-            <div className="h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium">
+        <div className="p-4 border-t border-border-light">
+          <div className="flex items-center mb-4 px-2">
+            <div className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-medium text-slate-600">
               {user?.name?.charAt(0) || 'A'}
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-white">{user?.name || 'Admin User'}</p>
-              <p className="text-xs text-slate-400">{user?.role}</p>
+              <p className="text-sm font-semibold text-text-main">{user?.name || 'Admin User'}</p>
+              <p className="text-xs text-text-muted">{user?.role}</p>
             </div>
           </div>
           <button 
             onClick={logout}
-            className="flex w-full items-center px-3 py-2 text-sm font-medium text-slate-300 rounded-md hover:bg-slate-800 hover:text-white transition-colors"
+            className="flex w-full items-center px-3 py-2.5 text-sm font-medium text-text-muted rounded-lg hover:bg-slate-50 hover:text-danger transition-colors"
           >
-            <LogOut className="mr-3 h-5 w-5 text-slate-400" />
+            <LogOut className="mr-3 h-5 w-5 text-text-muted group-hover:text-danger" />
             Sign Out
           </button>
         </div>
