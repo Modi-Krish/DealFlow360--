@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../shared/store/authStore';
+import { PersonaSwitcher } from '../PersonaSwitcher';
 import { LayoutDashboard, Truck, PackageCheck, AlertTriangle, LogOut, TrendingUp } from 'lucide-react';
 
 export const OpsLayout = () => {
@@ -8,8 +9,9 @@ export const OpsLayout = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/ops/dashboard', icon: LayoutDashboard },
-    { name: 'Fulfillment', path: '/ops/fulfillment', icon: Truck },
-    { name: 'Inventory', path: '/ops/inventory', icon: PackageCheck },
+    { name: 'Warehouse Dispatch', path: '/ops/warehouse', icon: Truck },
+    { name: 'Fulfillment Orders', path: '/ops/fulfillment', icon: PackageCheck },
+    { name: 'Inventory & Stock', path: '/ops/inventory', icon: PackageCheck },
     { name: 'Stock Alerts', path: '/ops/alerts', icon: AlertTriangle },
   ];
 
@@ -74,6 +76,7 @@ export const OpsLayout = () => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        <PersonaSwitcher />
         <main className="flex-1 overflow-y-auto bg-background p-8">
           <Outlet />
         </main>

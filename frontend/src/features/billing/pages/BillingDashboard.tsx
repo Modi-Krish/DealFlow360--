@@ -7,7 +7,7 @@ export const BillingDashboard = () => {
   const queryClient = useQueryClient();
 
   const { data: orders, isLoading: loadingOrders } = useQuery({ queryKey: ['orders'], queryFn: getOrders });
-  const { data: subscriptions, isLoading: loadingSubs } = useQuery({ queryKey: ['subscriptions'], queryFn: getSubscriptions });
+  const { data: subscriptions } = useQuery({ queryKey: ['subscriptions'], queryFn: getSubscriptions });
   const { data: invoices, isLoading: loadingInvoices } = useQuery({ queryKey: ['invoices'], queryFn: getInvoices });
   const { data: quotations } = useQuery({ queryKey: ['quotations'], queryFn: getQuotations });
 

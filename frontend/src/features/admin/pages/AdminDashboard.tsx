@@ -1,4 +1,4 @@
-import { Users, Package, FileText, Activity, BarChart3, Tags, DollarSign } from 'lucide-react';
+import { Users, BarChart3, Tags, DollarSign } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardMetrics } from '../services/analyticsApi';
 

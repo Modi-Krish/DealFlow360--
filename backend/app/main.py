@@ -6,8 +6,11 @@ from app.core.database import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("DealFlow360 Lifespan: initializing MongoDB...")
     await init_db()
+    print("DealFlow360 Lifespan: database initialized successfully.")
     yield
+    print("DealFlow360 Lifespan: shutdown.")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

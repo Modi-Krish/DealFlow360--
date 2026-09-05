@@ -1,5 +1,6 @@
 from typing import Optional
 from decimal import Decimal
+from beanie import DecimalAnnotation
 from datetime import datetime, timezone
 from pydantic import Field
 from beanie import Link
@@ -14,7 +15,7 @@ class Order(BaseModel):
     customer: Link[Customer]
     status: str = Field(default="PROCESSING") # PROCESSING, COMPLETED, CANCELLED
     
-    total_amount: Decimal = Field(default=Decimal("0.0"))
+    total_amount: DecimalAnnotation = Field(default=Decimal("0.0"))
     
     class Settings:
         name = "orders"
@@ -27,7 +28,7 @@ class Subscription(BaseModel):
     
     status: str = Field(default="ACTIVE") # ACTIVE, PAST_DUE, CANCELLED
     billing_cycle: str = Field(default="MONTHLY") # MONTHLY, ANNUALLY
-    recurring_price: Decimal = Field(default=Decimal("0.0"))
+    recurring_price: DecimalAnnotation = Field(default=Decimal("0.0"))
     
     next_billing_date: datetime
     
@@ -36,11 +37,14 @@ class Subscription(BaseModel):
 
 class Invoice(BaseModel):
     invoice_number: str = Field(..., max_length=50)
-    order: Link[Order]
-    customer: Link[Customer]
+    order: Optional[Link[Order]] = None
+    customer: Optional[Link[Customer]] = None
+    bid_id: Optional[str] = None
+    customer_name: Optional[str] = None
+    seller_name: Optional[str] = None
     
-    amount_due: Decimal = Field(default=Decimal("0.0"))
-    amount_paid: Decimal = Field(default=Decimal("0.0"))
+    amount_due: DecimalAnnotation = Field(default=Decimal("0.0"))
+    amount_paid: DecimalAnnotation = Field(default=Decimal("0.0"))
     
     status: str = Field(default="DRAFT") # DRAFT, SENT, PAID, OVERDUE
     due_date: datetime

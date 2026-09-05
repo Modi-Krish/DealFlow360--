@@ -16,8 +16,14 @@ import { BillingDashboard } from '../features/billing/pages/BillingDashboard';
 import { CustomerLayout } from '../shared/components/layout/CustomerLayout';
 import { CustomerPortal } from '../features/portal/pages/CustomerPortal';
 
-// Layouts and Pages will be imported here later
-const DummyPage = ({ title }: { title: string }) => <div className="p-8 text-2xl text-text-main">{title}</div>;
+// Multi-Seller Marketplace, Negotiations, and Warehouse Delivery modules
+import { MarketplacePage } from '../features/bids/pages/MarketplacePage';
+import { SellerBidsPage } from '../features/bids/pages/SellerBidsPage';
+import { WarehouseDispatchPage } from '../features/ops/pages/WarehouseDispatchPage';
+
+const DummyPage = ({ title }: { title: string }) => (
+  <div className="p-8 text-2xl text-text-main">{title}</div>
+);
 
 export const AppRouter = () => {
   return (
@@ -25,32 +31,48 @@ export const AppRouter = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
-        
+
+        {/* Customer Portal & Marketplace Routes */}
+        <Route path="/marketplace" element={<CustomerLayout />}>
+          <Route index element={<MarketplacePage />} />
+        </Route>
+
+        {/* Dedicated Seller Portal Routes */}
+        <Route path="/seller" element={<SalesLayout />}>
+          <Route path="bids" element={<SellerBidsPage />} />
+          <Route index element={<Navigate to="/seller/bids" replace />} />
+        </Route>
+
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="bids" element={<SellerBidsPage />} />
+          <Route path="warehouse" element={<WarehouseDispatchPage />} />
           <Route path="customers" element={<CustomersPage />} />
           <Route path="price-lists" element={<PriceListsPage />} />
           <Route path="billing" element={<BillingDashboard />} />
         </Route>
-        
+
         {/* Sales Routes */}
         <Route path="/sales" element={<SalesLayout />}>
           <Route path="dashboard" element={<SalesDashboard />} />
+          <Route path="bids" element={<SellerBidsPage />} />
           <Route path="quotations" element={<QuotationBuilder />} />
           <Route path="quotations/new" element={<QuotationBuilder />} />
           <Route path="approvals" element={<DummyPage title="Approvals" />} />
           <Route path="fulfillment" element={<DummyPage title="Fulfillment" />} />
         </Route>
-        {/* Ops Routes */}
+
+        {/* Ops & Warehouse Routes */}
         <Route path="/ops" element={<OpsLayout />}>
           <Route path="dashboard" element={<OpsDashboard />} />
+          <Route path="warehouse" element={<WarehouseDispatchPage />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="fulfillment" element={<FulfillmentPage />} />
         </Route>
 
-        {/* Customer Portal Routes */}
+        {/* Customer Portal Specific Route */}
         <Route path="/portal" element={<CustomerLayout />}>
           <Route path=":customerId" element={<CustomerPortal />} />
         </Route>

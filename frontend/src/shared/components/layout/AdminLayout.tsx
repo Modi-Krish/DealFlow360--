@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../shared/store/authStore';
-import { LayoutDashboard, Users, Package, Tags, CreditCard, LogOut, TrendingUp } from 'lucide-react';
+import { PersonaSwitcher } from '../PersonaSwitcher';
+import { LayoutDashboard, Users, Package, Tags, CreditCard, LogOut, TrendingUp, Store, ShoppingBag, Truck } from 'lucide-react';
 
 export const AdminLayout = () => {
   const location = useLocation();
@@ -8,10 +9,13 @@ export const AdminLayout = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Products', path: '/admin/products', icon: Package },
+    { name: 'Marketplace', path: '/marketplace', icon: ShoppingBag },
+    { name: 'Seller Negotiations', path: '/seller/bids', icon: Store },
+    { name: 'Warehouse Dispatch', path: '/ops/warehouse', icon: Truck },
+    { name: 'Products & Stock', path: '/admin/products', icon: Package },
     { name: 'Customers', path: '/admin/customers', icon: Users },
     { name: 'Price Lists', path: '/admin/price-lists', icon: Tags },
-    { name: 'Billing', path: '/admin/billing', icon: CreditCard },
+    { name: 'Billing & Invoices', path: '/admin/billing', icon: CreditCard },
   ];
 
   return (
@@ -75,6 +79,7 @@ export const AdminLayout = () => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        <PersonaSwitcher />
         <main className="flex-1 overflow-y-auto bg-background p-8">
           <Outlet />
         </main>

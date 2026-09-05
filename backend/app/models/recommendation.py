@@ -1,6 +1,7 @@
 from typing import Optional
 from datetime import datetime, timezone
 from decimal import Decimal
+from beanie import DecimalAnnotation
 from pydantic import Field
 from beanie import Link
 from app.models.base import BaseModel
@@ -18,7 +19,7 @@ class ProductRecommendation(BaseModel):
 class Promotion(BaseModel):
     product: Link[Product]
     promotion_name: str = Field(..., max_length=100)
-    discount_percent: Decimal = Field(default=Decimal("0.0"))
+    discount_percent: DecimalAnnotation = Field(default=Decimal("0.0"))
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     

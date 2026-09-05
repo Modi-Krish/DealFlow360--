@@ -1,5 +1,6 @@
 from typing import Optional, List
 from decimal import Decimal
+from beanie import DecimalAnnotation
 from datetime import datetime, timezone
 from pydantic import Field, BaseModel as PydanticBaseModel
 from beanie import Link
@@ -8,7 +9,7 @@ from app.models.product import Product
 
 class PriceListItem(PydanticBaseModel):
     product: Link[Product]
-    custom_price: Decimal
+    custom_price: DecimalAnnotation
 
 class PriceList(BaseModel):
     name: str = Field(..., max_length=255)

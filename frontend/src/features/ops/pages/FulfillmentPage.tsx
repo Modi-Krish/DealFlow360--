@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getFulfillmentOrders, allocateQuotation } from '../services/fulfillmentApi';
 import { getQuotations } from '../../sales/services/quotationApi';
-import { Truck, Check, AlertTriangle } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 export const FulfillmentPage = () => {
   const queryClient = useQueryClient();

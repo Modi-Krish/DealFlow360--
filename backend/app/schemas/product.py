@@ -36,12 +36,16 @@ class ProductVariantResponse(ProductVariantBase):
 # Product Schemas
 class ProductBase(BaseModel):
     name: str
+    sku: Optional[str] = None
     category_id: Optional[str] = None
     description: Optional[str] = None
     base_price: Decimal = Decimal("0.0")
     unit: str = "unit"
     tax_rate: Decimal = Decimal("0.0")
     status: str = "ACTIVE"
+    seller_id: Optional[str] = None
+    seller_name: Optional[str] = None
+    stock_quantity: Optional[int] = 100
 
 class ProductCreate(ProductBase):
     pass

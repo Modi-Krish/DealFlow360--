@@ -1,5 +1,6 @@
 from typing import Optional, List
 from decimal import Decimal
+from beanie import DecimalAnnotation
 from pydantic import Field, BaseModel as PydanticBaseModel
 from beanie import Link
 from app.models.base import BaseModel
@@ -10,10 +11,10 @@ from app.models.product import Product
 class QuotationItem(PydanticBaseModel):
     product: Link[Product]
     quantity: int = Field(default=1)
-    unit_price: Decimal = Field(default=Decimal("0.0"))
-    discount: Decimal = Field(default=Decimal("0.0"))
-    tax: Decimal = Field(default=Decimal("0.0"))
-    total_price: Decimal = Field(default=Decimal("0.0"))
+    unit_price: DecimalAnnotation = Field(default=Decimal("0.0"))
+    discount: DecimalAnnotation = Field(default=Decimal("0.0"))
+    tax: DecimalAnnotation = Field(default=Decimal("0.0"))
+    total_price: DecimalAnnotation = Field(default=Decimal("0.0"))
 
 class Quotation(BaseModel):
     quotation_number: str = Field(..., max_length=50)
@@ -26,10 +27,10 @@ class Quotation(BaseModel):
     notes: Optional[str] = None
     customer_notes: Optional[str] = None
     
-    subtotal: Decimal = Field(default=Decimal("0.0"))
-    discount_total: Decimal = Field(default=Decimal("0.0"))
-    tax_total: Decimal = Field(default=Decimal("0.0"))
-    grand_total: Decimal = Field(default=Decimal("0.0"))
+    subtotal: DecimalAnnotation = Field(default=Decimal("0.0"))
+    discount_total: DecimalAnnotation = Field(default=Decimal("0.0"))
+    tax_total: DecimalAnnotation = Field(default=Decimal("0.0"))
+    grand_total: DecimalAnnotation = Field(default=Decimal("0.0"))
     
     items: List[QuotationItem] = []
     

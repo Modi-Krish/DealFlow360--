@@ -1,26 +1,26 @@
 from typing import Optional, List
 from pydantic import BaseModel
 from decimal import Decimal
+from datetime import datetime
 
-class PriceListItemBase(BaseModel):
+class PriceListItemCreate(BaseModel):
     product_id: str
-    price: Decimal
+    custom_price: Decimal
 
-class PriceListItemCreate(PriceListItemBase):
-    pass
-
-class PriceListItemResponse(PriceListItemBase):
-    id: str
-    price_list_id: str
+class PriceListItemResponse(BaseModel):
+    product_name: Optional[str] = None
+    product_id: Optional[str] = None
+    custom_price: Decimal
     
     class Config:
         from_attributes = True
 
 class PriceListBase(BaseModel):
     name: str
-    customer_tier: Optional[str] = None
     currency: str = "USD"
-    status: str = "ACTIVE"
+    is_active: bool = True
+    valid_from: Optional[datetime] = None
+    valid_until: Optional[datetime] = None
 
 class PriceListCreate(PriceListBase):
     pass

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getQuotations, createQuotation, addQuotationItem } from '../services/quotationApi';
+import { createQuotation, addQuotationItem } from '../services/quotationApi';
 import { getCustomers, getProducts } from '../../admin/services/adminApi';
-import { Plus, Search, FileText, ShoppingCart, TrendingUp } from 'lucide-react';
+import { Plus, ShoppingCart, TrendingUp } from 'lucide-react';
 
 export const QuotationBuilder = () => {
   const queryClient = useQueryClient();

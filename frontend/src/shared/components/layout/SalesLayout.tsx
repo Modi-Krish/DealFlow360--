@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../shared/store/authStore';
-import { LayoutDashboard, FileText, CheckCircle, Package, LogOut, TrendingUp } from 'lucide-react';
+import { PersonaSwitcher } from '../PersonaSwitcher';
+import { LayoutDashboard, FileText, CheckCircle, Package, LogOut, TrendingUp, Store } from 'lucide-react';
 
 export const SalesLayout = () => {
   const location = useLocation();
@@ -8,6 +9,7 @@ export const SalesLayout = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/sales/dashboard', icon: LayoutDashboard },
+    { name: 'Seller Negotiations', path: '/seller/bids', icon: Store },
     { name: 'Quotations', path: '/sales/quotations', icon: FileText },
     { name: 'Approvals', path: '/sales/approvals', icon: CheckCircle },
     { name: 'Fulfillment', path: '/sales/fulfillment', icon: Package },
@@ -74,6 +76,7 @@ export const SalesLayout = () => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        <PersonaSwitcher />
         <main className="flex-1 overflow-y-auto bg-background p-8">
           <Outlet />
         </main>

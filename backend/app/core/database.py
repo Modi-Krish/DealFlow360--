@@ -23,6 +23,7 @@ async def init_db():
     from app.models.inventory import Warehouse, Inventory, FulfillmentOrder
     from app.models.billing import Order, Subscription, Invoice
     from app.models.audit import AuditLog
+    from app.models.bid import ProductBid
     
     await init_beanie(
         database=database,
@@ -39,7 +40,8 @@ async def init_db():
             Order,
             Subscription,
             Invoice,
-            AuditLog
+            AuditLog,
+            ProductBid
         ]
     )
 
