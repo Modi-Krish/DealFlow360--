@@ -1,19 +1,28 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { PersonaSwitcher } from '../PersonaSwitcher';
-import { LayoutDashboard, FileText, CheckCircle, Package, LogOut, TrendingUp, Store } from 'lucide-react';
+import { LayoutDashboard, FileText, CheckCircle, LogOut, TrendingUp, Store, Users, BarChart3, Building } from 'lucide-react';
 
 export const SalesLayout = () => {
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, hasPermission } = useAuthStore();
+  const role = (user?.role || '').toLowerCase();
 
-  const navItems = [
+  // Dynamic Navigation based on Section 13:
+  // Sales Rep: Dashboard, Quotations, Pipeline, Customers, Deal Health
+  // Sales Manager: Dashboard, Quotations, Pipeline, Approvals, Deal Health, Reports
+  // Seller: Dashboard, Employees, Quotations, Pipeline, Approvals, Customers
+  const candidateItems = [
     { name: 'Dashboard', path: '/sales/dashboard', icon: LayoutDashboard },
-    { name: 'Seller Negotiations', path: '/seller/bids', icon: Store },
-    { name: 'Quotations', path: '/sales/quotations', icon: FileText },
-    { name: 'Approvals', path: '/sales/approvals', icon: CheckCircle },
-    { name: 'Fulfillment', path: '/sales/fulfillment', icon: Package },
+    { name: 'Quotations', path: '/sales/quotations', icon: FileText, perm: 'quotations.view' },
+    { name: 'Deals & Pipeline', path: '/seller/bids', icon: Store },
+    { name: 'Approvals Queue', path: '/sales/approvals', icon: CheckCircle, perm: 'approval.view' },
+    { name: 'Customers', path: '/admin/customers', icon: Users, perm: 'customers.view' },
+    { name: 'Employees & Roles', path: '/seller/employees', icon: Building, perm: 'users.view' },
+    { name: 'Reports & Analytics', path: '/admin/dashboard', icon: BarChart3, perm: 'reports.view' },
   ];
+
+  const navItems = candidateItems.filter(item => !item.perm || hasPermission(item.perm));
 
   return (
     <div className="flex h-screen bg-background">
@@ -30,7 +39,9 @@ export const SalesLayout = () => {
         
         <div className="flex-1 overflow-y-auto py-4">
           <div className="px-6 mb-4">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Sales Portal</p>
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+              {role === 'sales_manager' ? 'Sales Manager Workspace' : (role === 'seller' ? 'Seller Workspace' : 'Sales Representative')}
+            </p>
           </div>
           <nav className="space-y-1 px-3">
             {navItems.map((item) => {
@@ -56,12 +67,12 @@ export const SalesLayout = () => {
 
         <div className="p-4 border-t border-border-light">
           <div className="flex items-center mb-4 px-2">
-            <div className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-medium text-slate-600">
+            <div className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-medium text-slate-600 uppercase">
               {user?.name?.charAt(0) || 'S'}
             </div>
-            <div className="ml-3">
-              <p className="text-sm font-semibold text-text-main">{user?.name || 'Sales Rep'}</p>
-              <p className="text-xs text-text-muted">{user?.role || 'SALES_REP'}</p>
+            <div className="ml-3 truncate">
+              <p className="text-sm font-semibold text-text-main truncate">{user?.name || 'Sales User'}</p>
+              <p className="text-xs text-text-muted uppercase font-mono">{user?.role}</p>
             </div>
           </div>
           <button 

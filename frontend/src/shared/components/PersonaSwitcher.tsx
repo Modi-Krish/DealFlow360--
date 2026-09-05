@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { login, fetchMe } from '../../features/auth/services/authApi';
-import { ShieldCheck, Store, Briefcase, ShoppingBag, Truck, Check, Loader2 } from 'lucide-react';
+import { ShieldCheck, Store, Briefcase, ShoppingBag, Truck, Check, Loader2, DollarSign, CheckCircle2 } from 'lucide-react';
 
 interface Persona {
   id: string;
   name: string;
   roleTitle: string;
+  role: string;
   email: string;
   password: string;
   targetRoute: string;
@@ -18,59 +19,100 @@ interface Persona {
 
 const PERSONAS: Persona[] = [
   {
-    id: 'admin',
-    name: 'Admin User',
-    roleTitle: 'Marketplace Admin',
+    id: 'super_admin',
+    name: 'Super Admin',
+    roleTitle: 'Super Admin',
+    role: 'super_admin',
     email: 'admin@dealflow360.com',
     password: 'admin123',
     targetRoute: '/admin/dashboard',
     icon: ShieldCheck,
-    color: 'text-purple-600',
-    bgLight: 'bg-purple-50 border-purple-200 text-purple-700',
+    color: 'text-purple-400',
+    bgLight: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
   },
   {
-    id: 'seller',
-    name: 'Apex Global Hardware',
-    roleTitle: 'Verified Seller',
+    id: 'seller_a',
+    name: 'Apex Global',
+    roleTitle: 'Seller A',
+    role: 'seller',
     email: 'seller1@dealflow360.com',
     password: 'seller123',
-    targetRoute: '/seller/bids',
+    targetRoute: '/admin/dashboard',
     icon: Store,
-    color: 'text-blue-600',
-    bgLight: 'bg-blue-50 border-blue-200 text-blue-700',
+    color: 'text-blue-400',
+    bgLight: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
   },
   {
-    id: 'seller_emp',
+    id: 'manager_a',
+    name: 'Sarah Manager',
+    roleTitle: 'Sales Manager',
+    role: 'sales_manager',
+    email: 'manager@apex.com',
+    password: 'seller123',
+    targetRoute: '/sales/approvals',
+    icon: CheckCircle2,
+    color: 'text-pink-400',
+    bgLight: 'bg-pink-500/20 text-pink-300 border-pink-500/40',
+  },
+  {
+    id: 'sales_rep_a',
     name: 'Marcus Vance',
-    roleTitle: "Seller's Employee",
+    roleTitle: 'Sales Rep A',
+    role: 'sales_rep',
     email: 'marcus@apex.com',
     password: 'seller123',
-    targetRoute: '/seller/bids',
+    targetRoute: '/sales/quotations',
     icon: Briefcase,
-    color: 'text-indigo-600',
-    bgLight: 'bg-indigo-50 border-indigo-200 text-indigo-700',
+    color: 'text-indigo-400',
+    bgLight: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
   },
   {
-    id: 'buyer',
-    name: 'Acme Procurement',
-    roleTitle: 'Customer / Buyer',
-    email: 'buyer@acmecorp.com',
-    password: 'buyer123',
-    targetRoute: '/marketplace',
-    icon: ShoppingBag,
-    color: 'text-emerald-600',
-    bgLight: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+    id: 'finance_a',
+    name: 'Fiona Finance',
+    roleTitle: 'Finance A',
+    role: 'finance',
+    email: 'finance@apex.com',
+    password: 'seller123',
+    targetRoute: '/ops/dashboard',
+    icon: DollarSign,
+    color: 'text-emerald-400',
+    bgLight: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
   },
   {
-    id: 'warehouse',
-    name: 'Apex Logistics Depot',
-    roleTitle: "Seller's Warehouse",
+    id: 'ops_a',
+    name: 'Logistics Hub',
+    roleTitle: 'Operations A',
+    role: 'operations',
     email: 'warehouse@apex.com',
     password: 'ops123',
     targetRoute: '/ops/warehouse',
     icon: Truck,
-    color: 'text-amber-600',
-    bgLight: 'bg-amber-50 border-amber-200 text-amber-700',
+    color: 'text-amber-400',
+    bgLight: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+  },
+  {
+    id: 'seller_b',
+    name: 'CloudScale Tech',
+    roleTitle: 'Seller B',
+    role: 'seller',
+    email: 'seller2@dealflow360.com',
+    password: 'seller123',
+    targetRoute: '/admin/dashboard',
+    icon: Store,
+    color: 'text-cyan-400',
+    bgLight: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+  },
+  {
+    id: 'buyer',
+    name: 'Acme Procurement',
+    roleTitle: 'Customer',
+    role: 'customer',
+    email: 'buyer@acmecorp.com',
+    password: 'buyer123',
+    targetRoute: '/marketplace',
+    icon: ShoppingBag,
+    color: 'text-teal-400',
+    bgLight: 'bg-teal-500/20 text-teal-300 border-teal-500/40',
   },
 ];
 
@@ -104,17 +146,17 @@ export const PersonaSwitcher: React.FC = () => {
   };
 
   return (
-    <div className="bg-slate-900 text-slate-200 px-4 py-2 border-b border-slate-800 text-xs flex flex-wrap items-center justify-between gap-3 shadow-md z-30 sticky top-0">
+    <div className="bg-slate-950 text-slate-200 px-4 py-2 border-b border-slate-800 text-xs flex flex-wrap items-center justify-between gap-2 shadow-md z-30 sticky top-0">
       <div className="flex items-center gap-2">
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-          Role Switcher
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary border border-primary/30 uppercase tracking-wider">
+          RBAC Role Switcher
         </span>
-        <span className="text-slate-400 hidden sm:inline">
-          Switch active user to test the multi-seller marketplace & bidding loop:
+        <span className="text-slate-400 text-xs hidden lg:inline">
+          Switch role to test tenant isolation & granular permissions:
         </span>
       </div>
 
-      <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+      <div className="flex items-center gap-1 overflow-x-auto py-0.5">
         {PERSONAS.map((p) => {
           const Icon = p.icon;
           const isActive = user?.email === p.email;
@@ -125,10 +167,10 @@ export const PersonaSwitcher: React.FC = () => {
               key={p.id}
               onClick={() => handleSwitch(p)}
               disabled={isPending}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap border ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all cursor-pointer whitespace-nowrap border ${
                 isActive
-                  ? 'bg-emerald-500 text-slate-950 font-bold border-emerald-400 shadow-sm'
-                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600'
+                  ? 'bg-primary text-slate-950 font-bold border-primary shadow-sm ring-1 ring-primary/40'
+                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600'
               }`}
             >
               {isPending ? (
@@ -139,7 +181,7 @@ export const PersonaSwitcher: React.FC = () => {
                 <Icon className={`w-3.5 h-3.5 ${p.color}`} />
               )}
               <span>{p.roleTitle}</span>
-              <span className="text-[10px] opacity-70 hidden md:inline">({p.name.split(' ')[0]})</span>
+              <span className="text-[10px] opacity-60 hidden md:inline">({p.name.split(' ')[0]})</span>
             </button>
           );
         })}

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.auth import router as auth_router
+from app.api.v1.users import router as users_router
 from app.api.v1.products import router as products_router
 from app.api.v1.customers import router as customers_router
 from app.api.v1.pricing import router as pricing_router
@@ -11,10 +12,12 @@ from app.api.v1.billing import router as billing_router
 from app.api.v1.portal import router as portal_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.bids import router as bids_router
+from app.api.v1.audit_api import router as audit_router
 
 api_router = APIRouter()
 
 api_router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(users_router, prefix="/users", tags=["Users & Organization Management"])
 api_router.include_router(products_router, tags=["Products & Categories"])
 api_router.include_router(customers_router, prefix="/customers", tags=["Customers"])
 api_router.include_router(pricing_router, prefix="/price-lists", tags=["Pricing"])
@@ -26,3 +29,4 @@ api_router.include_router(billing_router, prefix="/billing", tags=["Billing"])
 api_router.include_router(portal_router, prefix="/portal", tags=["Customer Portal"])
 api_router.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
 api_router.include_router(bids_router, prefix="/bids", tags=["Bidding & Negotiations"])
+api_router.include_router(audit_router, prefix="/audit-logs", tags=["Audit Logs"])

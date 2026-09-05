@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token
 from app.core.dependencies import get_current_user
+from app.core.permissions import normalize_role, get_effective_permissions
 from app.models.user import User
 from app.schemas.auth import UserCreate, UserLogin, Token, UserResponse
 from app.schemas.common import StandardResponse
@@ -8,16 +9,27 @@ from app.schemas.common import StandardResponse
 router = APIRouter()
 
 def user_to_response(user: User) -> UserResponse:
+    norm_role = normalize_role(user.role)
+    eff_perms = sorted(list(get_effective_permissions(norm_role, user.permissions)))
     return UserResponse(
         id=str(user.id),
         name=user.name,
         email=user.email,
-        role=user.role,
-        status="ACTIVE" if user.is_active else "INACTIVE"
+        role=norm_role,
+        status=user.status or ("ACTIVE" if user.is_active else "INACTIVE"),
+        permissions=eff_perms,
+        seller_id=user.seller_id,
+        company_name=user.company_name
     )
 
 @router.post("/signup", response_model=StandardResponse[UserResponse])
+@router.post("/register", response_model=StandardResponse[UserResponse])
 async def signup(user_data: UserCreate):
+    """
+    Public self-registration endpoint.
+    SECURITY: Never trust client-sent role. Public signup strictly enforces 'customer' role
+    with no seller affiliation and no internal permissions.
+    """
     try:
         existing_user = await User.find_one({"email": user_data.email})
         if existing_user:
@@ -27,21 +39,23 @@ async def signup(user_data: UserCreate):
             name=user_data.name,
             email=user_data.email,
             password_hash=get_password_hash(user_data.password),
-            role=user_data.role,
-            is_active=True
+            role="customer", # Enforce customer role unconditionally
+            permissions=[],
+            seller_id=None,
+            is_active=True,
+            status="ACTIVE"
         )
         
         await new_user.insert()
         
         return StandardResponse(
             success=True,
-            message="User created successfully",
+            message="Customer account created successfully",
             data=user_to_response(new_user)
         )
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/login", response_model=StandardResponse[Token])
@@ -51,8 +65,8 @@ async def login(user_data: UserLogin):
     if not user or not verify_password(user_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
         
-    if not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+    if not user.is_active or user.status == "INACTIVE":
+        raise HTTPException(status_code=400, detail="Inactive user account")
         
     return StandardResponse(
         success=True,

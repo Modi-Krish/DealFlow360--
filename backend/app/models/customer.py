@@ -10,7 +10,9 @@ class Customer(BaseModel):
     customer_tier: str = Field(default="STANDARD")
     address: Optional[str] = None
     status: str = Field(default="ACTIVE")
+    seller_id: Optional[str] = None
+    user_id: Optional[str] = None
     
     class Settings:
         name = "customers"
-        indexes = ["name"]
+        indexes = ["name", "email", "seller_id", "user_id"]

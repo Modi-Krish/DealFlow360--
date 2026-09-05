@@ -1,11 +1,11 @@
+from typing import Optional, List
 from pydantic import BaseModel, EmailStr
-from app.models.user import UserRole
 
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
-    role: UserRole = UserRole.SALES_REP
+    role: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -20,8 +20,11 @@ class UserResponse(BaseModel):
     id: str
     name: str
     email: str
-    role: UserRole
+    role: str
     status: str
+    permissions: List[str] = []
+    seller_id: Optional[str] = None
+    company_name: Optional[str] = None
     
     class Config:
         from_attributes = True

@@ -1,19 +1,27 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { PersonaSwitcher } from '../PersonaSwitcher';
-import { LayoutDashboard, Truck, PackageCheck, AlertTriangle, LogOut, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Truck, PackageCheck, CreditCard, CheckCircle, BarChart3, LogOut, TrendingUp } from 'lucide-react';
 
 export const OpsLayout = () => {
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, hasPermission } = useAuthStore();
+  const role = (user?.role || '').toLowerCase();
+  const isFinance = role === 'finance';
 
-  const navItems = [
-    { name: 'Dashboard', path: '/ops/dashboard', icon: LayoutDashboard },
-    { name: 'Warehouse Dispatch', path: '/ops/warehouse', icon: Truck },
-    { name: 'Fulfillment Orders', path: '/ops/fulfillment', icon: PackageCheck },
+  const candidateItems = isFinance ? [
+    { name: 'Financial Dashboard', path: '/ops/dashboard', icon: LayoutDashboard },
+    { name: 'Approvals Queue', path: '/sales/approvals', icon: CheckCircle, perm: 'approval.view' },
+    { name: 'Billing & Invoices', path: '/admin/billing', icon: CreditCard, perm: 'billing.view' },
+    { name: 'Financial Reports', path: '/admin/dashboard', icon: BarChart3, perm: 'reports.view' },
+  ] : [
+    { name: 'Ops Dashboard', path: '/ops/dashboard', icon: LayoutDashboard },
+    { name: 'Warehouse Dispatch', path: '/ops/warehouse', icon: Truck, perm: 'warehouses.view' },
+    { name: 'Fulfillment Orders', path: '/ops/fulfillment', icon: PackageCheck, perm: 'fulfillment.view' },
     { name: 'Inventory & Stock', path: '/ops/inventory', icon: PackageCheck },
-    { name: 'Stock Alerts', path: '/ops/alerts', icon: AlertTriangle },
   ];
+
+  const navItems = candidateItems.filter(item => !item.perm || hasPermission(item.perm));
 
   return (
     <div className="flex h-screen bg-background">
@@ -30,7 +38,9 @@ export const OpsLayout = () => {
         
         <div className="flex-1 overflow-y-auto py-4">
           <div className="px-6 mb-4">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Operations</p>
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+              {isFinance ? 'Finance Workspace' : 'Operations & Logistics'}
+            </p>
           </div>
           <nav className="space-y-1 px-3">
             {navItems.map((item) => {
@@ -56,12 +66,12 @@ export const OpsLayout = () => {
 
         <div className="p-4 border-t border-border-light">
           <div className="flex items-center mb-4 px-2">
-            <div className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-medium text-slate-600">
+            <div className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-medium text-slate-600 uppercase">
               {user?.name?.charAt(0) || 'O'}
             </div>
-            <div className="ml-3">
-              <p className="text-sm font-semibold text-text-main">{user?.name || 'Ops Team'}</p>
-              <p className="text-xs text-text-muted">{user?.role || 'FINANCE_OPS'}</p>
+            <div className="ml-3 truncate">
+              <p className="text-sm font-semibold text-text-main truncate">{user?.name || 'Operations'}</p>
+              <p className="text-xs text-text-muted uppercase font-mono">{user?.role}</p>
             </div>
           </div>
           <button 

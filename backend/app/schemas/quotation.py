@@ -1,5 +1,5 @@
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from decimal import Decimal
 from datetime import datetime
 
@@ -13,13 +13,13 @@ class QuotationItemCreate(QuotationItemBase):
     pass
 
 class QuotationItemResponse(QuotationItemBase):
-    id: str
-    quotation_id: str
-    unit_price: Decimal
-    discount_amount: Decimal
-    tax_amount: Decimal
-    margin_amount: Decimal
-    line_total: Decimal
+    id: Optional[str] = None
+    quotation_id: Optional[str] = None
+    unit_price: Decimal = Decimal("0.0")
+    discount_amount: Decimal = Decimal("0.0")
+    tax_amount: Decimal = Decimal("0.0")
+    margin_amount: Decimal = Decimal("0.0")
+    line_total: Decimal = Decimal("0.0")
     
     class Config:
         from_attributes = True
@@ -28,19 +28,21 @@ class QuotationBase(BaseModel):
     customer_id: str
 
 class QuotationCreate(QuotationBase):
-    pass
+    seller_id: Optional[str] = None
 
 class QuotationResponse(QuotationBase):
     id: str
     quotation_number: str
     sales_rep_id: str
+    seller_id: Optional[str] = None
+    approval_level: Optional[str] = None
     status: str
-    subtotal: Decimal
-    discount_total: Decimal
-    tax_total: Decimal
-    grand_total: Decimal
-    margin_amount: Decimal
-    risk_score: Decimal
+    subtotal: Decimal = Decimal("0.0")
+    discount_total: Decimal = Decimal("0.0")
+    tax_total: Decimal = Decimal("0.0")
+    grand_total: Decimal = Decimal("0.0")
+    margin_amount: Decimal = Decimal("0.0")
+    risk_score: Decimal = Decimal("0.0")
     expires_at: Optional[datetime] = None
     items: List[QuotationItemResponse] = []
     

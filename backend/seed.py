@@ -11,6 +11,8 @@ from app.models.pricing import PriceList, PriceListItem
 from app.models.inventory import Warehouse, Inventory, FulfillmentOrder, FulfillmentItem
 from app.models.billing import Invoice, Order
 from app.models.bid import ProductBid, BidHistoryItem
+from app.models.quotation import Quotation, QuotationItem
+from app.models.audit import AuditLog
 
 async def seed_data():
     print("Initializing MongoDB and Beanie...")
@@ -27,86 +29,126 @@ async def seed_data():
     await ProductBid.delete_all()
     await Invoice.delete_all()
     await FulfillmentOrder.delete_all()
+    await Quotation.delete_all()
+    await AuditLog.delete_all()
     
-    print("Creating multi-seller users...")
+    print("Creating multi-seller users with canonical 7-role hierarchy...")
     # 1. Super Admin
-    admin = User(name="Admin User", email="admin@dealflow360.com", password_hash=get_password_hash("admin123"), role=UserRole.ADMIN)
+    admin = User(
+        name="Super Admin",
+        email="admin@dealflow360.com",
+        password_hash=get_password_hash("admin123"),
+        role=UserRole.SUPER_ADMIN.value,
+        permissions=["*"],
+        company_name="DealFlow360 Platform",
+        status="ACTIVE"
+    )
     await admin.insert()
 
-    # 2. Seller 1: Apex Hardware
+    # 2. Seller 1: Apex Global Hardware
     seller1 = User(
         name="Apex Global Hardware",
         email="seller1@dealflow360.com",
         password_hash=get_password_hash("seller123"),
-        role=UserRole.SELLER,
-        company_name="Apex Global Hardware"
+        role=UserRole.SELLER.value,
+        company_name="Apex Global Hardware",
+        status="ACTIVE"
     )
     await seller1.insert()
+    seller1.seller_id = str(seller1.id)
+    await seller1.save()
     seller1_id = str(seller1.id)
 
-    seller1_emp = User(
+    # Apex Employees
+    sales_manager_apex = User(
+        name="Sarah Manager",
+        email="manager@apex.com",
+        password_hash=get_password_hash("seller123"),
+        role=UserRole.SALES_MANAGER.value,
+        company_name="Apex Global Hardware",
+        seller_id=seller1_id,
+        status="ACTIVE"
+    )
+    sales_rep_apex = User(
         name="Marcus Vance",
         email="marcus@apex.com",
         password_hash=get_password_hash("seller123"),
-        role=UserRole.SELLER_EMPLOYEE,
+        role=UserRole.SALES_REP.value,
         company_name="Apex Global Hardware",
-        seller_id=seller1_id
+        seller_id=seller1_id,
+        status="ACTIVE"
     )
-    seller1_wh = User(
+    finance_apex = User(
+        name="Fiona Finance",
+        email="finance@apex.com",
+        password_hash=get_password_hash("seller123"),
+        role=UserRole.FINANCE.value,
+        company_name="Apex Global Hardware",
+        seller_id=seller1_id,
+        status="ACTIVE"
+    )
+    ops_apex = User(
         name="Apex Logistics & Warehouse",
         email="warehouse@apex.com",
         password_hash=get_password_hash("ops123"),
-        role=UserRole.WAREHOUSE_OPS,
+        role=UserRole.OPERATIONS.value,
         company_name="Apex Global Hardware",
-        seller_id=seller1_id
+        seller_id=seller1_id,
+        status="ACTIVE"
     )
-    await User.insert_many([seller1_emp, seller1_wh])
+    await sales_manager_apex.insert()
+    await sales_rep_apex.insert()
+    await finance_apex.insert()
+    await ops_apex.insert()
 
-    # 3. Seller 2: CloudScale Tech
+    # 3. Seller 2: CloudScale Technologies
     seller2 = User(
         name="CloudScale Technologies",
         email="seller2@dealflow360.com",
         password_hash=get_password_hash("seller123"),
-        role=UserRole.SELLER,
-        company_name="CloudScale Technologies"
+        role=UserRole.SELLER.value,
+        company_name="CloudScale Technologies",
+        status="ACTIVE"
     )
     await seller2.insert()
+    seller2.seller_id = str(seller2.id)
+    await seller2.save()
     seller2_id = str(seller2.id)
 
-    seller2_emp = User(
+    # CloudScale Employees
+    sales_rep_cs = User(
         name="Elena Rostova",
         email="elena@cloudscale.io",
         password_hash=get_password_hash("seller123"),
-        role=UserRole.SELLER_EMPLOYEE,
+        role=UserRole.SALES_REP.value,
         company_name="CloudScale Technologies",
-        seller_id=seller2_id
+        seller_id=seller2_id,
+        status="ACTIVE"
     )
-    seller2_wh = User(
+    ops_cs = User(
         name="CloudScale Fulfillment",
         email="warehouse@cloudscale.io",
         password_hash=get_password_hash("ops123"),
-        role=UserRole.WAREHOUSE_OPS,
+        role=UserRole.OPERATIONS.value,
         company_name="CloudScale Technologies",
-        seller_id=seller2_id
+        seller_id=seller2_id,
+        status="ACTIVE"
     )
-    await User.insert_many([seller2_emp, seller2_wh])
+    await sales_rep_cs.insert()
+    await ops_cs.insert()
 
     # 4. Customer Buyer
     buyer = User(
         name="Acme Procurement",
         email="buyer@acmecorp.com",
         password_hash=get_password_hash("buyer123"),
-        role=UserRole.CUSTOMER,
-        company_name="Acme Corporation"
+        role=UserRole.CUSTOMER.value,
+        company_name="Acme Corporation",
+        status="ACTIVE"
     )
     await buyer.insert()
     buyer_id = str(buyer.id)
 
-    # Legacy roles for compatibility
-    sales_rep = User(name="Sarah Sales", email="sarah@dealflow360.com", password_hash=get_password_hash("sales123"), role=UserRole.SALES_REP)
-    ops = User(name="Warehouse Ops", email="ops@dealflow360.com", password_hash=get_password_hash("ops123"), role=UserRole.FINANCE_OPS)
-    await User.insert_many([sales_rep, ops])
-    
     print("Creating Categories & Multi-Seller Products...")
     software_cat = await Category(name="Software Licenses", description="Enterprise software").insert()
     hardware_cat = await Category(name="Hardware", description="Server and networking equipment").insert()
@@ -169,17 +211,6 @@ async def seed_data():
         stock_quantity=200
     ).insert()
 
-    prod6 = await Product(
-        name="Cloud Migration & Deployment Support",
-        sku="SVC-IMP-001",
-        base_price=Decimal("200.00"),
-        category=services_cat,
-        unit="hour",
-        seller_id=seller2_id,
-        seller_name="CloudScale Technologies",
-        stock_quantity=150
-    ).insert()
-    
     print("Creating Warehouses & Inventory...")
     wh1 = await Warehouse(name="Apex East Coast Hub", location="New Jersey", seller_id=seller1_id, is_active=True).insert()
     wh2 = await Warehouse(name="CloudScale Tech Facility", location="San Jose, CA", seller_id=seller2_id, is_active=True).insert()
@@ -188,168 +219,49 @@ async def seed_data():
     await Inventory(warehouse=wh1, product=prod2, seller_id=seller1_id, quantity_on_hand=20, quantity_allocated=2).insert()
     await Inventory(warehouse=wh2, product=prod4, seller_id=seller2_id, quantity_on_hand=500, quantity_allocated=50).insert()
 
-    print("Creating Sample Bids & Negotiations...")
-    now = datetime.now(timezone.utc)
-    
-    # Bid 1: Pending Seller Review (Customer bid $2,100 for 5 units of Edge Server)
-    bid1 = await ProductBid(
-        bid_number="BID-APX-001",
-        product_id=str(prod1.id),
-        product_name=prod1.name,
-        seller_id=seller1_id,
-        seller_name="Apex Global Hardware",
-        customer_id=buyer_id,
-        customer_name="Acme Procurement",
-        customer_email="buyer@acmecorp.com",
-        quantity=5,
-        original_price=Decimal("2400.00"),
-        proposed_price=Decimal("2100.00"),
-        total_amount=Decimal("10500.00"),
-        delivery_address="100 Enterprise Way, Suite 400, Chicago, IL 60601",
-        notes="Bulk purchase for new datacenter branch. Requesting $2,100/unit.",
-        status="PENDING_SELLER_REVIEW",
-        history=[
-            BidHistoryItem(
-                actor_role="CUSTOMER",
-                actor_name="Acme Procurement",
-                action="PLACED_BID",
-                price=Decimal("2100.00"),
-                message="Offered $2,100/unit for 5 Edge Servers.",
-                timestamp=now - timedelta(hours=3)
-            )
-        ]
-    ).insert()
+    print("Creating Customers...")
+    cust1 = await Customer(name="Acme Corp", email="buyer@acmecorp.com", customer_tier="GOLD", seller_id=seller1_id).insert()
+    cust2 = await Customer(name="Stark Industries", email="tony@stark.com", customer_tier="SILVER", seller_id=seller1_id).insert()
+    cust3 = await Customer(name="Wayne Enterprises", email="bruce@wayne.com", customer_tier="PLATINUM", seller_id=seller2_id).insert()
 
-    # Bid 2: Countered with "FINAL PRICE" (Seller gave take-it-or-leave-it price of $1,050 for 10 Network Switches)
-    bid2 = await ProductBid(
-        bid_number="BID-APX-002",
-        product_id=str(prod3.id),
-        product_name=prod3.name,
+    print("Creating Sample Quotations...")
+    q1 = await Quotation(
+        quotation_number="QT-APX-1001",
+        customer=cust1,
+        sales_rep=sales_rep_apex,
         seller_id=seller1_id,
-        seller_name="Apex Global Hardware",
-        customer_id=buyer_id,
-        customer_name="Acme Procurement",
-        customer_email="buyer@acmecorp.com",
-        quantity=10,
-        original_price=Decimal("1200.00"),
-        proposed_price=Decimal("950.00"),
-        seller_counter_price=Decimal("1050.00"),
-        is_final_offer=True,
-        total_amount=Decimal("10500.00"),
-        delivery_address="742 Evergreen Terrace, Springfield, OR",
-        notes="Need 10 units for campus upgrade.",
-        status="SELLER_COUNTERED",
-        history=[
-            BidHistoryItem(
-                actor_role="CUSTOMER",
-                actor_name="Acme Procurement",
-                action="PLACED_BID",
-                price=Decimal("950.00"),
-                message="Proposed $950/unit for 10 switches.",
-                timestamp=now - timedelta(hours=5)
-            ),
-            BidHistoryItem(
-                actor_role="SELLER",
-                actor_name="Apex Global Hardware",
-                action="FINAL_OFFER",
-                price=Decimal("1050.00"),
-                message="Best bottom-line pricing we can offer is $1,050/unit. This is our Final Price.",
-                timestamp=now - timedelta(hours=2)
-            )
-        ]
-    ).insert()
-
-    # Bid 3: AGREED Deal -> Automatically Generated Bill & Warehouse Delivery Dispatch!
-    inv_agreed = await Invoice(
-        invoice_number="INV-CS-9021",
-        amount_due=Decimal("6000.00"),
-        amount_paid=Decimal("0.0"),
-        status="SENT",
-        due_date=now + timedelta(days=14)
-    ).insert()
-
-    disp_agreed = await FulfillmentOrder(
-        order_number="DISP-APX-4401",
-        seller_id=seller1_id,
-        seller_name="Apex Global Hardware",
-        customer_name="Acme Procurement",
-        delivery_address="450 Innovation Blvd, Austin, TX 78701",
-        product_name="Managed Network Switch 48-Port",
-        quantity_to_deliver=6,
-        status="READY_FOR_DELIVERY",
-        dispatch_notes="Deal agreed at $1,000/unit. Bill #INV-CS-9021 issued. Ready for dispatch.",
+        status="APPROVED",
+        subtotal=Decimal("4800.00"),
+        grand_total=Decimal("4800.00"),
         items=[
-            FulfillmentItem(
-                product_name="Managed Network Switch 48-Port",
-                quantity=6,
-                warehouse_name="Apex East Coast Hub"
+            QuotationItem(
+                product=prod1,
+                quantity=2,
+                unit_price=Decimal("2400.00"),
+                discount=Decimal("0.0"),
+                tax=Decimal("0.0"),
+                total_price=Decimal("4800.00")
             )
         ]
     ).insert()
 
-    bid3 = await ProductBid(
-        bid_number="BID-APX-003",
-        product_id=str(prod3.id),
-        product_name=prod3.name,
-        seller_id=seller1_id,
-        seller_name="Apex Global Hardware",
-        customer_id=buyer_id,
-        customer_name="Acme Procurement",
-        customer_email="buyer@acmecorp.com",
-        quantity=6,
-        original_price=Decimal("1200.00"),
-        proposed_price=Decimal("980.00"),
-        seller_counter_price=Decimal("1000.00"),
-        final_agreed_price=Decimal("1000.00"),
-        total_amount=Decimal("6000.00"),
-        delivery_address="450 Innovation Blvd, Austin, TX 78701",
-        status="AGREED",
-        invoice_id=str(inv_agreed.id),
-        invoice_number=inv_agreed.invoice_number,
-        fulfillment_id=str(disp_agreed.id),
-        fulfillment_number=disp_agreed.order_number,
-        history=[
-            BidHistoryItem(
-                actor_role="CUSTOMER",
-                actor_name="Acme Procurement",
-                action="PLACED_BID",
-                price=Decimal("980.00"),
-                message="Offered $980/unit for 6 units.",
-                timestamp=now - timedelta(days=1)
-            ),
-            BidHistoryItem(
-                actor_role="SELLER",
-                actor_name="Apex Global Hardware",
-                action="COUNTERED",
-                price=Decimal("1000.00"),
-                message="Countered at $1,000/unit.",
-                timestamp=now - timedelta(hours=18)
-            ),
-            BidHistoryItem(
-                actor_role="CUSTOMER",
-                actor_name="Acme Procurement",
-                action="ACCEPTED",
-                price=Decimal("1000.00"),
-                message="Accepted agreed price of $1,000/unit. Bill generated and Warehouse notified for delivery of 6 units.",
-                timestamp=now - timedelta(hours=12)
-            )
-        ]
-    ).insert()
-
-    # Legacy Customers
-    cust1 = await Customer(name="Acme Corp", email="procurement@acmecorp.com", customer_tier="GOLD").insert()
-    cust2 = await Customer(name="Stark Industries", email="tony@stark.com", customer_tier="SILVER").insert()
-    cust3 = await Customer(name="Wayne Enterprises", email="bruce@wayne.com", customer_tier="PLATINUM").insert()
-
-    # Price lists
-    pl1 = await PriceList(
-        name="Q4 Enterprise Promo",
-        currency="USD",
-        is_active=True,
-        valid_from=now,
+    q2 = await Quotation(
+        quotation_number="QT-CS-2001",
+        customer=cust3,
+        sales_rep=sales_rep_cs,
+        seller_id=seller2_id,
+        status="APPROVED",
+        subtotal=Decimal("1500.00"),
+        grand_total=Decimal("1500.00"),
         items=[
-            PriceListItem(product=prod4, custom_price=Decimal("120.00")),
-            PriceListItem(product=prod5, custom_price=Decimal("450.00"))
+            QuotationItem(
+                product=prod4,
+                quantity=10,
+                unit_price=Decimal("150.00"),
+                discount=Decimal("0.0"),
+                tax=Decimal("0.0"),
+                total_price=Decimal("1500.00")
+            )
         ]
     ).insert()
 

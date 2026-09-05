@@ -14,6 +14,7 @@ class PriceListItem(PydanticBaseModel):
 class PriceList(BaseModel):
     name: str = Field(..., max_length=255)
     currency: str = Field(default="USD")
+    seller_id: Optional[str] = None
     is_active: bool = True
     valid_from: Optional[datetime] = None
     valid_until: Optional[datetime] = None
@@ -21,3 +22,4 @@ class PriceList(BaseModel):
     
     class Settings:
         name = "price_lists"
+        indexes = ["name", "seller_id"]

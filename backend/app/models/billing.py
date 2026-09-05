@@ -11,20 +11,22 @@ from app.models.product import Product
 
 class Order(BaseModel):
     order_number: str = Field(..., max_length=50)
-    quotation: Link[Quotation]
+    quotation: Optional[Link[Quotation]] = None
     customer: Link[Customer]
+    seller_id: Optional[str] = None
     status: str = Field(default="PROCESSING") # PROCESSING, COMPLETED, CANCELLED
     
     total_amount: DecimalAnnotation = Field(default=Decimal("0.0"))
     
     class Settings:
         name = "orders"
-        indexes = ["order_number"]
+        indexes = ["order_number", "seller_id"]
 
 class Subscription(BaseModel):
-    order: Link[Order]
+    order: Optional[Link[Order]] = None
     customer: Link[Customer]
     product: Link[Product]
+    seller_id: Optional[str] = None
     
     status: str = Field(default="ACTIVE") # ACTIVE, PAST_DUE, CANCELLED
     billing_cycle: str = Field(default="MONTHLY") # MONTHLY, ANNUALLY
@@ -34,6 +36,7 @@ class Subscription(BaseModel):
     
     class Settings:
         name = "subscriptions"
+        indexes = ["seller_id"]
 
 class Invoice(BaseModel):
     invoice_number: str = Field(..., max_length=50)
@@ -42,6 +45,7 @@ class Invoice(BaseModel):
     bid_id: Optional[str] = None
     customer_name: Optional[str] = None
     seller_name: Optional[str] = None
+    seller_id: Optional[str] = None
     
     amount_due: DecimalAnnotation = Field(default=Decimal("0.0"))
     amount_paid: DecimalAnnotation = Field(default=Decimal("0.0"))
@@ -51,4 +55,4 @@ class Invoice(BaseModel):
     
     class Settings:
         name = "invoices"
-        indexes = ["invoice_number"]
+        indexes = ["invoice_number", "seller_id"]

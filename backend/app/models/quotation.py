@@ -21,7 +21,14 @@ class Quotation(BaseModel):
     customer: Link[Customer]
     sales_rep: Link[User]
     
-    # PENDING, IN_REVIEW, APPROVED, REJECTED, NEGOTIATING, ALLOCATED, CLOSED_WON, CLOSED_LOST
+    # Multi-tenant scoping
+    seller_id: Optional[str] = None
+    
+    # Approval chain state
+    approval_level: Optional[str] = None # SALES_MANAGER, FINANCE, NONE
+    risk_score: Optional[float] = 0.0
+    
+    # PENDING, IN_REVIEW, PENDING_APPROVAL, APPROVED, REJECTED, NEGOTIATING, ALLOCATED, CLOSED_WON, CLOSED_LOST
     status: str = Field(default="PENDING")
     
     notes: Optional[str] = None
@@ -36,4 +43,4 @@ class Quotation(BaseModel):
     
     class Settings:
         name = "quotations"
-        indexes = ["quotation_number"]
+        indexes = ["quotation_number", "seller_id", "status"]

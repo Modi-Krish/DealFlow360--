@@ -1,22 +1,37 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { PersonaSwitcher } from '../PersonaSwitcher';
-import { LayoutDashboard, Users, Package, Tags, CreditCard, LogOut, TrendingUp, Store, ShoppingBag, Truck } from 'lucide-react';
+import {
+  LayoutDashboard, Users, Package, Tags, CreditCard, LogOut, TrendingUp,
+  Store, Truck, ClipboardList, CheckCircle, FileText
+} from 'lucide-react';
 
 export const AdminLayout = () => {
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, hasPermission } = useAuthStore();
+  const role = (user?.role || '').toLowerCase();
+  const isSuperAdmin = role === 'super_admin' || role === 'admin';
 
-  const navItems = [
+  // Dynamic Navigation based on Role & Permissions
+  const navItems = isSuperAdmin ? [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Marketplace', path: '/marketplace', icon: ShoppingBag },
-    { name: 'Seller Negotiations', path: '/seller/bids', icon: Store },
-    { name: 'Warehouse Dispatch', path: '/ops/warehouse', icon: Truck },
+    { name: 'Sellers Directory', path: '/admin/sellers', icon: Store },
+    { name: 'Users & Roles', path: '/admin/users', icon: Users },
+    { name: 'System Audit Logs', path: '/admin/audit-logs', icon: ClipboardList },
     { name: 'Products & Stock', path: '/admin/products', icon: Package },
-    { name: 'Customers', path: '/admin/customers', icon: Users },
     { name: 'Price Lists', path: '/admin/price-lists', icon: Tags },
     { name: 'Billing & Invoices', path: '/admin/billing', icon: CreditCard },
-  ];
+  ] : [
+    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Employees & Roles', path: '/seller/employees', icon: Users, perm: 'users.view' },
+    { name: 'Products Catalog', path: '/admin/products', icon: Package, perm: 'products.view' },
+    { name: 'Price Lists', path: '/admin/price-lists', icon: Tags, perm: 'price_lists.view' },
+    { name: 'Quotations', path: '/sales/quotations', icon: FileText, perm: 'quotations.view' },
+    { name: 'Approvals Queue', path: '/sales/approvals', icon: CheckCircle, perm: 'approval.view' },
+    { name: 'Bids & Deals', path: '/seller/bids', icon: Store },
+    { name: 'Warehouses', path: '/ops/warehouse', icon: Truck, perm: 'warehouses.view' },
+    { name: 'Billing & Invoices', path: '/admin/billing', icon: CreditCard, perm: 'billing.view' },
+  ].filter(item => !item.perm || hasPermission(item.perm));
 
   return (
     <div className="flex h-screen bg-background">
@@ -32,8 +47,10 @@ export const AdminLayout = () => {
         </div>
         
         <div className="flex-1 overflow-y-auto py-4">
-          <div className="px-6 mb-4">
-            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Admin</p>
+          <div className="px-6 mb-4 flex items-center justify-between">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+              {isSuperAdmin ? 'Super Admin Portal' : (user?.company_name || 'Seller Organization')}
+            </p>
           </div>
           <nav className="space-y-1 px-3">
             {navItems.map((item) => {
@@ -59,12 +76,12 @@ export const AdminLayout = () => {
 
         <div className="p-4 border-t border-border-light">
           <div className="flex items-center mb-4 px-2">
-            <div className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-medium text-slate-600">
-              {user?.name?.charAt(0) || 'A'}
+            <div className="h-9 w-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-medium text-slate-600 uppercase">
+              {user?.name?.charAt(0) || 'U'}
             </div>
-            <div className="ml-3">
-              <p className="text-sm font-semibold text-text-main">{user?.name || 'Admin User'}</p>
-              <p className="text-xs text-text-muted">{user?.role}</p>
+            <div className="ml-3 truncate">
+              <p className="text-sm font-semibold text-text-main truncate">{user?.name || 'User'}</p>
+              <p className="text-xs text-text-muted uppercase font-mono">{user?.role}</p>
             </div>
           </div>
           <button 
