@@ -68,3 +68,23 @@ export const getPriceLists = async () => {
   const { data } = await api.get('/price-lists');
   return data.data;
 };
+
+export const createPriceList = async (payload: {
+  name: string;
+  currency?: string;
+  is_active?: boolean;
+  valid_from?: string;
+  valid_until?: string;
+  seller_id?: string;
+}) => {
+  const { data } = await api.post('/price-lists', payload);
+  return data.data;
+};
+
+export const addPriceListItem = async (
+  priceListId: string,
+  payload: { product_id: string; custom_price: number | string }
+) => {
+  const { data } = await api.post(`/price-lists/${priceListId}/items`, payload);
+  return data.data;
+};

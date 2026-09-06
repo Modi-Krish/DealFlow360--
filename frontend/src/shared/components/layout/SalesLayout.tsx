@@ -1,11 +1,24 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { LayoutDashboard, FileText, CheckCircle, LogOut, TrendingUp, Store, Users, BarChart3, Building, Activity, Package, RotateCcw } from 'lucide-react';
 
 export const SalesLayout = () => {
   const location = useLocation();
-  const { user, logout, hasPermission } = useAuthStore();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user, token, logout, hasPermission } = useAuthStore();
   const role = (user?.role || '').toLowerCase();
+
+  const handleLogout = () => {
+    logout();
+    queryClient.clear();
+    navigate('/login', { replace: true });
+  };
+
+  if (!token && !localStorage.getItem('access_token')) {
+    return <Navigate to="/login" replace />;
+  }
 
   const candidateItems = [
     { name: 'Dashboard', path: '/sales/dashboard', icon: LayoutDashboard },
@@ -72,8 +85,8 @@ export const SalesLayout = () => {
             </div>
           </div>
           <button
-            onClick={logout}
-            className="flex w-full items-center px-3 py-2.5 text-sm font-medium text-text-muted rounded-lg hover:bg-slate-50 hover:text-danger transition-colors"
+            onClick={handleLogout}
+            className="flex w-full items-center px-3 py-2.5 text-sm font-medium text-text-muted rounded-lg hover:bg-slate-50 hover:text-danger transition-colors cursor-pointer"
           >
             <LogOut className="mr-3 h-5 w-5 text-text-muted group-hover:text-danger" />
             Sign Out
@@ -95,7 +108,7 @@ export const SalesLayout = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-main bg-slate-100 hover:bg-slate-200 rounded-lg border border-border-light transition-all shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-main bg-slate-100 hover:bg-slate-200 rounded-lg border border-border-light transition-all shadow-2xs cursor-pointer"
               title="Reload data and synchronization state"
             >
               <RotateCcw className="w-3.5 h-3.5 text-primary" />
@@ -112,8 +125,8 @@ export const SalesLayout = () => {
             </Link>
 
             <button
-              onClick={() => logout()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all shadow-2xs"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all shadow-2xs cursor-pointer"
               title="Close Workspace session"
             >
               <LogOut className="w-3.5 h-3.5 text-rose-600" />

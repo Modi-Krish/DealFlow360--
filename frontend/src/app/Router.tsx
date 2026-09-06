@@ -197,6 +197,14 @@ export const AppRouter = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="approvals"
+            element={
+              <ProtectedRoute requiredPermission="approval.view">
+                <ApprovalsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="bids" element={<SellerBidsPage />} />
         </Route>
 
@@ -289,6 +297,30 @@ export const AppRouter = () => {
         {/* Ops & Warehouse Routes */}
         <Route path="/ops" element={<OpsLayout />}>
           <Route path="dashboard" element={<OpsDashboard />} />
+          <Route
+            path="approvals"
+            element={
+              <ProtectedRoute requiredPermission="approval.view">
+                <ApprovalsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="billing"
+            element={
+              <ProtectedRoute requiredPermission="billing.view">
+                <BillingDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="reports"
+            element={
+              <ProtectedRoute requiredPermission="reports.view">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="warehouse"
             element={

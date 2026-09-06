@@ -1,20 +1,34 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../../shared/store/authStore';
 import { LayoutDashboard, Truck, PackageCheck, CreditCard, CheckCircle, BarChart3, LogOut, TrendingUp } from 'lucide-react';
 
 export const OpsLayout = () => {
   const location = useLocation();
-  const { user, logout, hasPermission } = useAuthStore();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user, token, logout, hasPermission } = useAuthStore();
   const role = (user?.role || '').toLowerCase();
   const isFinance = role === 'finance';
 
+  const handleLogout = () => {
+    logout();
+    queryClient.clear();
+    navigate('/login', { replace: true });
+  };
+
+  if (!token && !localStorage.getItem('access_token')) {
+    return <Navigate to="/login" replace />;
+  }
+
   const candidateItems = isFinance ? [
     { name: 'Financial Dashboard', path: '/ops/dashboard', icon: LayoutDashboard },
-    { name: 'Approvals Queue', path: '/sales/approvals', icon: CheckCircle, perm: 'approval.view' },
-    { name: 'Billing & Invoices', path: '/admin/billing', icon: CreditCard, perm: 'billing.view' },
-    { name: 'Financial Reports', path: '/admin/dashboard', icon: BarChart3, perm: 'reports.view' },
+    { name: 'Approvals Queue', path: '/ops/approvals', icon: CheckCircle, perm: 'approval.view' },
+    { name: 'Billing & Invoices', path: '/ops/billing', icon: CreditCard, perm: 'billing.view' },
+    { name: 'Financial Reports', path: '/ops/reports', icon: BarChart3, perm: 'reports.view' },
   ] : [
     { name: 'Ops Dashboard', path: '/ops/dashboard', icon: LayoutDashboard },
+    { name: 'Approvals Queue', path: '/ops/approvals', icon: CheckCircle, perm: 'approval.view' },
     { name: 'Warehouse Dispatch', path: '/ops/warehouse', icon: Truck, perm: 'warehouse.view' },
     { name: 'Fulfillment Orders', path: '/ops/fulfillment', icon: PackageCheck, perm: 'fulfillment.view' },
     { name: 'Inventory & Stock', path: '/ops/inventory', icon: PackageCheck, perm: 'inventory.view' },
@@ -73,8 +87,8 @@ export const OpsLayout = () => {
             </div>
           </div>
           <button
-            onClick={logout}
-            className="flex w-full items-center px-3 py-2.5 text-sm font-medium text-text-muted rounded-lg hover:bg-slate-50 hover:text-danger transition-colors"
+            onClick={handleLogout}
+            className="flex w-full items-center px-3 py-2.5 text-sm font-medium text-text-muted rounded-lg hover:bg-slate-50 hover:text-danger transition-colors cursor-pointer"
           >
             <LogOut className="mr-3 h-5 w-5 text-text-muted group-hover:text-danger" />
             Sign Out

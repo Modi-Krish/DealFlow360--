@@ -95,6 +95,13 @@ async def create_user(
             target_company = user_data.company_name or user_data.name
         else:
             target_seller_id = user_data.seller_id
+            if target_seller_id and not target_company:
+                try:
+                    seller_user = await User.get(PydanticObjectId(target_seller_id))
+                    if seller_user:
+                        target_company = seller_user.company_name or seller_user.name
+                except Exception:
+                    pass
     elif current_role == "seller":
         # Seller can ONLY create employees for their own organization
         if target_role not in ALLOWED_EMPLOYEE_ROLES:
@@ -307,13 +314,13 @@ async def delete_user(
 async def get_system_roles():
     """Metadata of system roles and default permissions for UI assignment."""
     roles = [
-        {"id": "super_admin", "name": "Super Admin", "description": "Platform-wide administrator with full system access", "level": "PLATFORM"},
-        {"id": "seller", "name": "Seller / Organization", "description": "Independent business root owning employees, products, warehouses, and quotations", "level": "SELLER"},
-        {"id": "sales_manager", "name": "Sales Manager", "description": "Manages sales pipeline, reviews and approves discount requests", "level": "EMPLOYEE"},
-        {"id": "sales_rep", "name": "Sales Rep", "description": "Creates quotations and interacts with customers", "level": "EMPLOYEE"},
-        {"id": "finance", "name": "Finance", "description": "Reconciles billing, invoices, and approves high-risk deals", "level": "EMPLOYEE"},
-        {"id": "operations", "name": "Operations", "description": "Manages warehouses, inventory, and order fulfillment", "level": "EMPLOYEE"},
-        {"id": "customer", "name": "Customer", "description": "Self-registered external buyer", "level": "EXTERNAL"}
+        {"id": "super_admin", "name": "Super Admin", "description": "Platform-wide administrator with full system access", "level": "PLATFORM", "default_permissions": ROLE_DEFAULT_PERMISSIONS.get("super_admin", [])},
+        {"id": "seller", "name": "Seller / Organization", "description": "Independent business root owning employees, products, warehouses, and quotations", "level": "SELLER", "default_permissions": ROLE_DEFAULT_PERMISSIONS.get("seller", [])},
+        {"id": "sales_manager", "name": "Sales Manager", "description": "Manages sales pipeline, reviews and approves discount requests", "level": "EMPLOYEE", "default_permissions": ROLE_DEFAULT_PERMISSIONS.get("sales_manager", [])},
+        {"id": "sales_rep", "name": "Sales Rep", "description": "Creates quotations and interacts with customers", "level": "EMPLOYEE", "default_permissions": ROLE_DEFAULT_PERMISSIONS.get("sales_rep", [])},
+        {"id": "finance", "name": "Finance", "description": "Reconciles billing, invoices, and approves high-risk deals", "level": "EMPLOYEE", "default_permissions": ROLE_DEFAULT_PERMISSIONS.get("finance", [])},
+        {"id": "operations", "name": "Operations", "description": "Manages warehouses, inventory, and order fulfillment", "level": "EMPLOYEE", "default_permissions": ROLE_DEFAULT_PERMISSIONS.get("operations", [])},
+        {"id": "customer", "name": "Customer", "description": "Self-registered external buyer", "level": "EXTERNAL", "default_permissions": ROLE_DEFAULT_PERMISSIONS.get("customer", [])}
     ]
     return StandardResponse(success=True, message="Roles retrieved", data=roles)
 
