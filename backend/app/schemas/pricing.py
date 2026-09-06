@@ -31,3 +31,19 @@ class PriceListResponse(PriceListBase):
     
     class Config:
         from_attributes = True
+
+class DiscountRuleUpdate(BaseModel):
+    tier_ceilings: Optional[dict] = None
+    category_ceilings: Optional[dict] = None
+    routing_matrix: Optional[list] = None
+    sales_manager_threshold: Optional[float] = None
+    finance_threshold: Optional[float] = None
+
+class DiscountRuleResponse(BaseModel):
+    id: Optional[str] = None
+    seller_id: Optional[str] = None
+    tier_ceilings: dict
+    category_ceilings: dict
+    routing_matrix: list
+    sales_manager_threshold: float = 10.0
+    finance_threshold: float = 20.0

@@ -8,11 +8,17 @@ from beanie import PydanticObjectId
 from app.core.dependencies import get_current_user
 from app.models.user import User, UserRole
 from app.models.product import Product
-from app.models.bid import ProductBid, BidHistoryItem
+from app.models.bid import ProductBid, BidHistoryItem, BidLineItem
 from app.models.billing import Invoice, Order
 from app.models.inventory import FulfillmentOrder, FulfillmentItem
-from app.schemas.bid import BidCreate, SellerBidAction, CustomerBidAction, BidResponse, BidHistoryItemResponse
+from app.schemas.bid import (
+    BidCreate, SellerBidAction, CustomerBidAction, BidResponse,
+    BidHistoryItemResponse, BidLineItemResponse, CartCheckoutRequest
+)
 from app.schemas.common import StandardResponse
+from app.services.pdf_service import generate_quotation_pdf, generate_invoice_pdf
+from app.services.inventory_engine import InventoryEngine
+from fastapi.responses import Response
 
 router = APIRouter()
 
@@ -28,6 +34,18 @@ def bid_to_response(doc: ProductBid) -> BidResponse:
         )
         for h in doc.history
     ]
+    line_items = [
+        BidLineItemResponse(
+            product_id=it.product_id,
+            product_name=it.product_name,
+            quantity=it.quantity,
+            original_price=Decimal(str(it.original_price)),
+            proposed_price=Decimal(str(it.proposed_price)),
+            seller_counter_price=Decimal(str(it.seller_counter_price)) if it.seller_counter_price is not None else None,
+            final_agreed_price=Decimal(str(it.final_agreed_price)) if it.final_agreed_price is not None else None,
+        )
+        for it in (doc.items or [])
+    ]
     return BidResponse(
         id=str(doc.id),
         bid_number=doc.bid_number,
@@ -38,6 +56,7 @@ def bid_to_response(doc: ProductBid) -> BidResponse:
         customer_id=doc.customer_id,
         customer_name=doc.customer_name,
         customer_email=doc.customer_email,
+        items=line_items,
         quantity=doc.quantity,
         original_price=Decimal(str(doc.original_price)),
         proposed_price=Decimal(str(doc.proposed_price)),
@@ -56,6 +75,169 @@ def bid_to_response(doc: ProductBid) -> BidResponse:
         created_at=doc.created_at,
     )
 
+@router.post("/cart-checkout", response_model=StandardResponse[List[BidResponse]])
+async def cart_checkout(payload: CartCheckoutRequest, current_user: Optional[User] = Depends(get_current_user)):
+    """
+    Multi-Vendor Cart Checkout:
+    Groups cart items by seller_id.
+    - Items belonging to the SAME seller are processed together in ONE quotation.
+    - Items belonging to DIFFERENT sellers generate separate vendor-specific quotations.
+    """
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="Cart is empty")
+
+    customer_id = str(current_user.id) if current_user else f"cust-{uuid.uuid4().hex[:6]}"
+    customer_name = current_user.name if current_user else "B2B Buyer"
+    customer_email = current_user.email if current_user else "buyer@example.com"
+
+    product_map = {}
+    for item in payload.items:
+        try:
+            prod = await Product.get(PydanticObjectId(item.product_id))
+            if prod:
+                product_map[item.product_id] = prod
+        except Exception:
+            pass
+
+    if not product_map:
+        raise HTTPException(status_code=404, detail="No valid products found for cart items")
+
+    # Server-side stock availability validation for all cart items
+    for item in payload.items:
+        await InventoryEngine.validate_stock_availability(item.product_id, item.quantity)
+
+    seller_groups = {}
+    for item in payload.items:
+        prod = product_map.get(item.product_id)
+        if not prod:
+            continue
+        s_id = prod.seller_id or "seller-default"
+        s_name = prod.seller_name or "Verified Seller"
+        if s_id not in seller_groups:
+            seller_groups[s_id] = {"seller_name": s_name, "items": []}
+        seller_groups[s_id]["items"].append((item, prod))
+
+    created_bids = []
+    now = datetime.now(timezone.utc)
+
+    for s_id, group in seller_groups.items():
+        s_name = group["seller_name"]
+        group_items = group["items"]
+
+        bid_num = f"BID-{uuid.uuid4().hex[:6].upper()}"
+        bid_line_items = []
+        total_amount = Decimal("0.0")
+
+        first_prod = group_items[0][1]
+        prod_id_summary = str(first_prod.id)
+        prod_name_summary = first_prod.name if len(group_items) == 1 else f"Multi-Item Proposal ({len(group_items)} Products)"
+
+        for item, prod in group_items:
+            orig = Decimal(str(prod.base_price))
+            prop = Decimal(str(item.proposed_price))
+            item_tot = prop * item.quantity
+            total_amount += item_tot
+
+            bid_line_items.append(BidLineItem(
+                product_id=str(prod.id),
+                product_name=prod.name,
+                quantity=item.quantity,
+                original_price=orig,
+                proposed_price=prop
+            ))
+
+        primary_qty = sum(it.quantity for it in bid_line_items)
+
+        initial_history = BidHistoryItem(
+            actor_role="CUSTOMER",
+            actor_name=customer_name,
+            action="PLACED_BID",
+            price=Decimal(str(total_amount / max(primary_qty, 1))),
+            message=payload.notes or f"Placed consolidated bid for {len(bid_line_items)} items from {s_name}",
+            timestamp=now
+        )
+
+        new_bid = ProductBid(
+            bid_number=bid_num,
+            product_id=prod_id_summary,
+            product_name=prod_name_summary,
+            seller_id=s_id,
+            seller_name=s_name,
+            customer_id=customer_id,
+            customer_name=customer_name,
+            customer_email=customer_email,
+            items=bid_line_items,
+            quantity=primary_qty,
+            original_price=Decimal(str(first_prod.base_price)),
+            proposed_price=Decimal(str(total_amount / max(primary_qty, 1))),
+            total_amount=total_amount,
+            delivery_address=payload.delivery_address,
+            notes=payload.notes,
+            status="PENDING_SELLER_REVIEW",
+            history=[initial_history]
+        )
+        await new_bid.insert()
+        created_bids.append(new_bid)
+
+    return StandardResponse(
+        success=True,
+        message=f"Cart checkout successful. Created {len(created_bids)} seller-specific proposals.",
+        data=[bid_to_response(b) for b in created_bids]
+    )
+
+@router.get("/{bid_id}/pdf")
+async def download_bid_pdf(bid_id: str):
+    try:
+        bid = await ProductBid.get(PydanticObjectId(bid_id))
+    except Exception:
+        bid = None
+    if not bid:
+        raise HTTPException(status_code=404, detail="Quotation/Bid not found")
+
+    bid_dict = {
+        'bid_number': bid.bid_number,
+        'status': bid.status,
+        'created_at': bid.created_at,
+        'customer_name': bid.customer_name,
+        'customer_email': bid.customer_email,
+        'delivery_address': bid.delivery_address,
+        'seller_name': bid.seller_name,
+        'product_name': bid.product_name,
+        'quantity': bid.quantity,
+        'original_price': Decimal(str(bid.original_price)),
+        'proposed_price': Decimal(str(bid.proposed_price)),
+        'total_amount': Decimal(str(bid.total_amount)),
+        'items': [
+            {
+                'product_name': it.product_name,
+                'quantity': it.quantity,
+                'original_price': Decimal(str(it.original_price)),
+                'proposed_price': Decimal(str(it.proposed_price)),
+                'total_amount': Decimal(str(it.proposed_price * it.quantity))
+            }
+            for it in (bid.items or [])
+        ],
+        'history': [
+            {
+                'actor_role': h.actor_role,
+                'actor_name': h.actor_name,
+                'action': h.action,
+                'price': Decimal(str(h.price)),
+                'message': h.message,
+                'timestamp': h.timestamp
+            }
+            for h in bid.history
+        ]
+    }
+
+    pdf_bytes = generate_quotation_pdf(bid_dict)
+    filename = f"Quotation_{bid.bid_number}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"inline; filename={filename}"}
+    )
+
 @router.post("/", response_model=StandardResponse[BidResponse])
 async def create_bid(payload: BidCreate, current_user: Optional[User] = Depends(get_current_user)):
     try:
@@ -65,6 +247,9 @@ async def create_bid(payload: BidCreate, current_user: Optional[User] = Depends(
 
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+
+    # Server-side stock availability validation
+    await InventoryEngine.validate_stock_availability(payload.product_id, payload.quantity)
 
     customer_id = str(current_user.id) if current_user else f"cust-{uuid.uuid4().hex[:6]}"
     customer_name = current_user.name if current_user else "B2B Buyer"
@@ -165,7 +350,20 @@ async def _trigger_agreement_billing_and_dispatch(bid: ProductBid, agreed_price:
     bid.invoice_id = str(invoice.id)
     bid.invoice_number = inv_num
 
-    # 2. Generate Warehouse Delivery Dispatch notice
+    # 2. Trigger Idempotent Concurrency-Safe Inventory Reduction
+    items_to_bill = [
+        {"product_id": it.product_id, "quantity": it.quantity}
+        for it in (bid.items or [])
+    ] if bid.items else [{"product_id": bid.product_id, "quantity": bid.quantity}]
+
+    await InventoryEngine.confirm_and_bill_inventory(
+        order_id=str(bid.id),
+        invoice_id=inv_num,
+        items=items_to_bill,
+        seller_id=bid.seller_id
+    )
+
+    # 3. Generate Warehouse Delivery Dispatch notice
     fo_num = f"DISP-{uuid.uuid4().hex[:6].upper()}"
     fulfillment = FulfillmentOrder(
         order_number=fo_num,
@@ -321,12 +519,36 @@ async def customer_bid_action(
 
     elif action.action == "CANCEL":
         bid.status = "CANCELLED"
+
+        items_to_cancel = [
+            {"product_id": it.product_id, "quantity": it.quantity}
+            for it in (bid.items or [])
+        ] if bid.items else [{"product_id": bid.product_id, "quantity": bid.quantity}]
+
+        is_dispatched = False
+        if bid.fulfillment_id:
+            try:
+                fo = await FulfillmentOrder.get(PydanticObjectId(bid.fulfillment_id))
+                if fo and fo.status in ["DISPATCHED", "DELIVERED"]:
+                    is_dispatched = True
+            except Exception:
+                pass
+
+        await InventoryEngine.cancel_order_inventory(
+            order_id=str(bid.id),
+            fulfillment_id=bid.fulfillment_id,
+            items=items_to_cancel,
+            is_dispatched=is_dispatched,
+            seller_id=bid.seller_id,
+            user_id=str(current_user.id) if current_user else None
+        )
+
         bid.history.append(BidHistoryItem(
             actor_role="CUSTOMER",
             actor_name=actor_name,
             action="CANCELLED",
             price=Decimal(str(bid.proposed_price)),
-            message=action.notes or "Customer withdrew the bid.",
+            message=action.notes or ("Customer cancelled order after dispatch (return pending)" if is_dispatched else "Customer withdrew the bid."),
             timestamp=now
         ))
 

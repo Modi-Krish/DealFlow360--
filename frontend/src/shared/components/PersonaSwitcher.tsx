@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { login, fetchMe } from '../../features/auth/services/authApi';
 import { ShieldCheck, Store, Briefcase, ShoppingBag, Truck, Check, Loader2, DollarSign, CheckCircle2 } from 'lucide-react';
 
-interface Persona {
+export interface Persona {
   id: string;
   name: string;
   roleTitle: string;
@@ -12,20 +12,22 @@ interface Persona {
   email: string;
   password: string;
   targetRoute: string;
+  sub: string;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
   bgLight: string;
 }
 
-const PERSONAS: Persona[] = [
+export const PERSONAS: Persona[] = [
   {
     id: 'super_admin',
     name: 'Super Admin',
     roleTitle: 'Super Admin',
     role: 'super_admin',
     email: 'admin@dealflow360.com',
-    password: 'admin123',
+    password: 'Admin@123',
     targetRoute: '/admin/dashboard',
+    sub: 'Super',
     icon: ShieldCheck,
     color: 'text-purple-400',
     bgLight: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
@@ -35,9 +37,10 @@ const PERSONAS: Persona[] = [
     name: 'Apex Global',
     roleTitle: 'Seller A',
     role: 'seller',
-    email: 'seller1@dealflow360.com',
-    password: 'seller123',
+    email: 'seller@apexhardware.com',
+    password: 'Seller@123',
     targetRoute: '/admin/dashboard',
+    sub: 'Apex',
     icon: Store,
     color: 'text-blue-400',
     bgLight: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
@@ -47,9 +50,10 @@ const PERSONAS: Persona[] = [
     name: 'Sarah Manager',
     roleTitle: 'Sales Manager',
     role: 'sales_manager',
-    email: 'manager@apex.com',
-    password: 'seller123',
+    email: 'alexander.anderson.00@apexhardware.com',
+    password: 'Pass@123',
     targetRoute: '/sales/approvals',
+    sub: 'Sarah',
     icon: CheckCircle2,
     color: 'text-pink-400',
     bgLight: 'bg-pink-500/20 text-pink-300 border-pink-500/40',
@@ -59,9 +63,10 @@ const PERSONAS: Persona[] = [
     name: 'Marcus Vance',
     roleTitle: 'Sales Rep A',
     role: 'sales_rep',
-    email: 'marcus@apex.com',
-    password: 'seller123',
+    email: 'alexander.castro.02@apexhardware.com',
+    password: 'Pass@123',
     targetRoute: '/sales/quotations',
+    sub: 'Marcus',
     icon: Briefcase,
     color: 'text-indigo-400',
     bgLight: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
@@ -71,9 +76,10 @@ const PERSONAS: Persona[] = [
     name: 'Fiona Finance',
     roleTitle: 'Finance A',
     role: 'finance',
-    email: 'finance@apex.com',
-    password: 'seller123',
+    email: 'alexander.harris.07@apexhardware.com',
+    password: 'Pass@123',
     targetRoute: '/ops/dashboard',
+    sub: 'Fiona',
     icon: DollarSign,
     color: 'text-emerald-400',
     bgLight: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
@@ -83,9 +89,10 @@ const PERSONAS: Persona[] = [
     name: 'Logistics Hub',
     roleTitle: 'Operations A',
     role: 'operations',
-    email: 'warehouse@apex.com',
-    password: 'ops123',
+    email: 'alexander.jensen.09@apexhardware.com',
+    password: 'Pass@123',
     targetRoute: '/ops/warehouse',
+    sub: 'Logistics',
     icon: Truck,
     color: 'text-amber-400',
     bgLight: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
@@ -95,9 +102,10 @@ const PERSONAS: Persona[] = [
     name: 'CloudScale Tech',
     roleTitle: 'Seller B',
     role: 'seller',
-    email: 'seller2@dealflow360.com',
-    password: 'seller123',
+    email: 'seller@cloudscale.io',
+    password: 'Seller@123',
     targetRoute: '/admin/dashboard',
+    sub: 'CloudScale',
     icon: Store,
     color: 'text-cyan-400',
     bgLight: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
@@ -108,8 +116,9 @@ const PERSONAS: Persona[] = [
     roleTitle: 'Customer',
     role: 'customer',
     email: 'buyer@acmecorp.com',
-    password: 'buyer123',
+    password: 'Pass@123',
     targetRoute: '/marketplace',
+    sub: 'Acme',
     icon: ShoppingBag,
     color: 'text-teal-400',
     bgLight: 'bg-teal-500/20 text-teal-300 border-teal-500/40',
@@ -181,7 +190,7 @@ export const PersonaSwitcher: React.FC = () => {
                 <Icon className={`w-3.5 h-3.5 ${p.color}`} />
               )}
               <span>{p.roleTitle}</span>
-              <span className="text-[10px] opacity-60 hidden md:inline">({p.name.split(' ')[0]})</span>
+              <span className="text-[10px] opacity-60 hidden md:inline">({p.sub})</span>
             </button>
           );
         })}

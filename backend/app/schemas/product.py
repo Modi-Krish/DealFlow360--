@@ -50,6 +50,17 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     pass
 
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    sku: Optional[str] = None
+    category_id: Optional[str] = None
+    description: Optional[str] = None
+    base_price: Optional[Decimal] = None
+    unit: Optional[str] = None
+    tax_rate: Optional[Decimal] = None
+    status: Optional[str] = None
+    stock_quantity: Optional[int] = None
+
 class ProductResponse(ProductBase):
     id: str
     category: Optional[CategoryResponse] = None

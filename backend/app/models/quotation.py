@@ -8,13 +8,26 @@ from app.models.user import User
 from app.models.customer import Customer
 from app.models.product import Product
 
+import uuid
+from datetime import datetime, timezone
+
+class QuotationItemComment(PydanticBaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    author_name: str
+    author_role: str = "CUSTOMER" # CUSTOMER or SALES_REP
+    message: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class QuotationItem(PydanticBaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     product: Link[Product]
+    variant: Optional[str] = None
     quantity: int = Field(default=1)
     unit_price: DecimalAnnotation = Field(default=Decimal("0.0"))
     discount: DecimalAnnotation = Field(default=Decimal("0.0"))
     tax: DecimalAnnotation = Field(default=Decimal("0.0"))
     total_price: DecimalAnnotation = Field(default=Decimal("0.0"))
+    comments: List[QuotationItemComment] = []
 
 class Quotation(BaseModel):
     quotation_number: str = Field(..., max_length=50)
@@ -33,6 +46,8 @@ class Quotation(BaseModel):
     
     notes: Optional[str] = None
     customer_notes: Optional[str] = None
+    promised_delivery_date: Optional[datetime] = None
+    sla_status: Optional[str] = "ON_TIME" # ON_TIME, AT_RISK, DELAYED
     
     subtotal: DecimalAnnotation = Field(default=Decimal("0.0"))
     discount_total: DecimalAnnotation = Field(default=Decimal("0.0"))

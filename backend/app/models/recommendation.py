@@ -12,9 +12,11 @@ class ProductRecommendation(BaseModel):
     recommended_product: Link[Product]
     priority: int = Field(default=1)
     reason: str
+    seller_id: Optional[str] = None
     
     class Settings:
         name = "product_recommendations"
+        indexes = ["seller_id"]
 
 class Promotion(BaseModel):
     product: Link[Product]

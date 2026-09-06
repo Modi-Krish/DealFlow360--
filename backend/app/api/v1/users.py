@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr
 
 from app.core.dependencies import get_current_user, require_permission, enforce_tenant
 from app.core.permissions import (
-    Permission, ROLE_DEFAULT_PERMISSIONS, normalize_role, get_effective_permissions, user_has_permission
+    Permission, ROLE_DEFAULT_PERMISSIONS, normalize_role, get_effective_permissions
 )
 from app.core.security import get_password_hash
 from app.models.user import User, UserRole

@@ -14,6 +14,8 @@ export interface UserProfile {
 interface AuthState {
   user: UserProfile | null;
   token: string | null;
+  isInitializing: boolean;
+  initAuth: () => Promise<void>;
   setAuth: (user: UserProfile, token: string) => void;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
@@ -23,13 +25,38 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: localStorage.getItem('access_token'),
+  isInitializing: !!localStorage.getItem('access_token'),
+  initAuth: async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      set({ user: null, token: null, isInitializing: false });
+      return;
+    }
+    try {
+      const { api } = await import('../lib/axios');
+      const response = await api.get('/auth/me');
+      if (response.data?.success && response.data?.data) {
+        set({
+          user: response.data.data,
+          token,
+          isInitializing: false
+        });
+      } else {
+        localStorage.removeItem('access_token');
+        set({ user: null, token: null, isInitializing: false });
+      }
+    } catch (err) {
+      localStorage.removeItem('access_token');
+      set({ user: null, token: null, isInitializing: false });
+    }
+  },
   setAuth: (user, token) => {
     localStorage.setItem('access_token', token);
-    set({ user, token });
+    set({ user, token, isInitializing: false });
   },
   logout: () => {
     localStorage.removeItem('access_token');
-    set({ user: null, token: null });
+    set({ user: null, token: null, isInitializing: false });
   },
   hasPermission: (permission: string) => {
     const { user } = get();

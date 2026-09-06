@@ -7,6 +7,10 @@ class WarehouseBase(BaseModel):
     seller_id: Optional[str] = None
     type: str = "PRIMARY"
     status: str = "ACTIVE"
+    shipping_cost_per_kg: float = 5.0
+    priority_weight: int = 1
+    reorder_point: int = 15
+    reorder_quantity: int = 50
 
 class WarehouseResponse(WarehouseBase):
     id: str
@@ -43,6 +47,9 @@ class FulfillmentOrderResponse(BaseModel):
     dispatch_notes: Optional[str] = None
     tracking_number: Optional[str] = None
     carrier: Optional[str] = None
+    is_consolidated: bool = False
+    can_consolidate: bool = False
+    estimated_delivery_date: Optional[str] = None
     
     class Config:
         from_attributes = True

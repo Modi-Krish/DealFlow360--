@@ -45,6 +45,18 @@ export interface CreateBidPayload {
   notes?: string;
 }
 
+export interface CartCheckoutItemPayload {
+  product_id: string;
+  quantity: number;
+  proposed_price: number;
+}
+
+export interface CartCheckoutPayload {
+  items: CartCheckoutItemPayload[];
+  delivery_address: string;
+  notes?: string;
+}
+
 export interface SellerActionPayload {
   action: 'ACCEPT' | 'COUNTER' | 'REJECT';
   counter_price?: number;
@@ -87,6 +99,11 @@ export const getBidById = async (id: string): Promise<Bid> => {
 
 export const createBid = async (payload: CreateBidPayload): Promise<Bid> => {
   const { data } = await api.post('/bids/', payload);
+  return data.data;
+};
+
+export const cartCheckout = async (payload: CartCheckoutPayload): Promise<Bid[]> => {
+  const { data } = await api.post('/bids/cart-checkout', payload);
   return data.data;
 };
 

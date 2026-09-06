@@ -17,11 +17,15 @@ import { EmployeeManagementPage } from '../features/admin/pages/EmployeeManageme
 import { SellersManagementPage } from '../features/admin/pages/SellersManagementPage';
 import { UserManagementPage } from '../features/admin/pages/UserManagementPage';
 import { AuditLogsPage } from '../features/admin/pages/AuditLogsPage';
+import { WarehousesPage } from '../features/admin/pages/WarehousesPage';
+import { RecommendationsPage } from '../features/admin/pages/RecommendationsPage';
 
 // Sales Pages
 import { SalesDashboard } from '../features/sales/pages/SalesDashboard';
 import { QuotationBuilder } from '../features/sales/pages/QuotationBuilder';
 import { ApprovalsPage } from '../features/sales/pages/ApprovalsPage';
+import { DealHealthPage } from '../features/sales/pages/DealHealthPage';
+import { DiscountRulesPage } from '../features/admin/pages/DiscountRulesPage';
 
 // Ops & Warehouse Pages
 import { OpsDashboard } from '../features/ops/pages/OpsDashboard';
@@ -37,6 +41,9 @@ import { CustomerPortal } from '../features/portal/pages/CustomerPortal';
 import { MarketplacePage } from '../features/bids/pages/MarketplacePage';
 import { SellerBidsPage } from '../features/bids/pages/SellerBidsPage';
 
+// Utility Pages
+import { NotFoundPage } from '../shared/pages/NotFoundPage';
+
 export const AppRouter = () => {
   return (
     <BrowserRouter>
@@ -50,6 +57,7 @@ export const AppRouter = () => {
         </Route>
 
         <Route path="/portal" element={<CustomerLayout />}>
+          <Route index element={<CustomerPortal />} />
           <Route path=":customerId" element={<CustomerPortal />} />
         </Route>
 
@@ -134,6 +142,30 @@ export const AppRouter = () => {
             }
           />
           <Route
+            path="discount-rules"
+            element={
+              <ProtectedRoute requiredPermission="pricing.view">
+                <DiscountRulesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="warehouses"
+            element={
+              <ProtectedRoute requiredRole={['super_admin', 'seller']}>
+                <WarehousesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="recommendations"
+            element={
+              <ProtectedRoute requiredRole={['super_admin', 'seller']}>
+                <RecommendationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="billing"
             element={
               <ProtectedRoute requiredPermission="billing.view">
@@ -177,6 +209,14 @@ export const AppRouter = () => {
             element={
               <ProtectedRoute requiredPermission="approval.view">
                 <ApprovalsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="deal-health"
+            element={
+              <ProtectedRoute requiredPermission="quotations.view">
+                <DealHealthPage />
               </ProtectedRoute>
             }
           />
@@ -227,8 +267,8 @@ export const AppRouter = () => {
           />
         </Route>
 
-        {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Real 404 Route */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

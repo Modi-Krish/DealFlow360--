@@ -7,8 +7,9 @@ from beanie import Link
 from app.models.category import Category
 
 class ProductVariant(PydanticBaseModel):
-    attribute: str # e.g., Color, Size
-    value: str     # e.g., Red, Large
+    attribute: str # e.g., Color, Size, Pack
+    value: str     # e.g., Red, Large, 5-Pack
+    price_surcharge: DecimalAnnotation = Field(default=Decimal("0.0"))
 
 class Product(BaseModel):
     name: str = Field(..., max_length=255)

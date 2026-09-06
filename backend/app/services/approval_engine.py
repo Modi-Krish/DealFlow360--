@@ -15,7 +15,17 @@ class ApprovalEngine:
         - If risk_score >= 50: High-risk -> Level 1 (SALES_MANAGER) which will escalate to Level 2 (FINANCE) upon manager approval.
         """
         seller_id = quotation.seller_id or requester.seller_id
-        is_high_risk = (risk_score >= 150.0)
+        
+        from app.models.pricing import DiscountRule
+        discount_rule = None
+        if seller_id:
+            discount_rule = await DiscountRule.find_one({"seller_id": seller_id})
+        if not discount_rule:
+            discount_rule = await DiscountRule.find_one({"seller_id": None})
+            
+        finance_threshold = float(getattr(discount_rule, "finance_threshold", 20.0)) if discount_rule else 20.0
+        sales_manager_threshold = float(getattr(discount_rule, "sales_manager_threshold", 10.0)) if discount_rule else 10.0
+        is_high_risk = (risk_score >= finance_threshold)
         
         quotation.risk_score = float(risk_score)
         quotation.status = "PENDING_APPROVAL"

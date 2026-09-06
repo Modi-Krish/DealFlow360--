@@ -36,7 +36,7 @@ export const AdminDashboard = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="card relative overflow-hidden group">
           <div className="flex justify-between items-start">
             <div className="relative z-10">
@@ -50,7 +50,7 @@ export const AdminDashboard = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="card relative overflow-hidden group">
           <div className="flex justify-between items-start">
             <div className="relative z-10">
@@ -64,7 +64,7 @@ export const AdminDashboard = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="card relative overflow-hidden group">
           <div className="flex justify-between items-start">
             <div className="relative z-10">
@@ -79,7 +79,7 @@ export const AdminDashboard = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card h-80 flex flex-col">
           <h3 className="text-lg font-bold text-text-main mb-4">Business Performance</h3>

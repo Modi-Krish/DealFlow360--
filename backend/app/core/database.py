@@ -18,12 +18,15 @@ async def init_db():
     from app.models.user import User
     from app.models.product import Category, Product
     from app.models.customer import Customer
-    from app.models.pricing import PriceList
+    from app.models.pricing import PriceList, DiscountRule
     from app.models.quotation import Quotation
-    from app.models.inventory import Warehouse, Inventory, FulfillmentOrder
-    from app.models.billing import Order, Subscription, Invoice
+    from app.models.inventory import Warehouse, Inventory, FulfillmentOrder, InventoryTransaction
+    from app.models.billing import Order, Subscription, Invoice, CreditNote, SubscriptionPlan
     from app.models.audit import AuditLog
     from app.models.bid import ProductBid
+    from app.models.recommendation import ProductRecommendation, Promotion
+    
+    from app.models.approval import Approval, ApprovalHistory
     
     await init_beanie(
         database=database,
@@ -33,13 +36,21 @@ async def init_db():
             Product,
             Customer,
             PriceList,
+            DiscountRule,
             Quotation,
+            Approval,
+            ApprovalHistory,
             Warehouse,
             Inventory,
+            InventoryTransaction,
             FulfillmentOrder,
             Order,
             Subscription,
             Invoice,
+            CreditNote,
+            SubscriptionPlan,
+            ProductRecommendation,
+            Promotion,
             AuditLog,
             ProductBid
         ]

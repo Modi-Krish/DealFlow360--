@@ -13,6 +13,15 @@ class BidHistoryItem(PydanticBaseModel):
     message: Optional[str] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class BidLineItem(PydanticBaseModel):
+    product_id: str
+    product_name: str
+    quantity: int = Field(default=1)
+    original_price: DecimalAnnotation = Field(default=Decimal("0.0"))
+    proposed_price: DecimalAnnotation = Field(default=Decimal("0.0"))
+    seller_counter_price: Optional[DecimalAnnotation] = None
+    final_agreed_price: Optional[DecimalAnnotation] = None
+
 class ProductBid(BaseModel):
     bid_number: str = Field(..., max_length=50)
     
@@ -25,6 +34,8 @@ class ProductBid(BaseModel):
     customer_id: str
     customer_name: str
     customer_email: str
+    
+    items: List[BidLineItem] = []
     
     quantity: int = Field(default=1)
     original_price: DecimalAnnotation = Field(default=Decimal("0.0"))

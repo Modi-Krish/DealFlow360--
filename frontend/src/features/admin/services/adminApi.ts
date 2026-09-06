@@ -12,6 +12,7 @@ export interface CreateProductPayload {
   seller_id?: string;
   seller_name?: string;
   stock_quantity?: number;
+  variants?: Array<{ attribute: string; value: string; price_surcharge?: number }>;
 }
 
 export interface CreateCustomerPayload {
@@ -32,6 +33,11 @@ export const getProducts = async () => {
 
 export const createProduct = async (payload: CreateProductPayload) => {
   const { data } = await api.post('/products', payload);
+  return data.data;
+};
+
+export const archiveProduct = async (productId: string) => {
+  const { data } = await api.post(`/products/${productId}/archive`);
   return data.data;
 };
 

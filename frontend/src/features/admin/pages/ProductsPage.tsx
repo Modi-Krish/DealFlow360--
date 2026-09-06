@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getProducts, getCategories, createProduct, type CreateProductPayload } from '../services/adminApi';
-import { Plus, Search, X, Loader2, Package, Check, AlertCircle } from 'lucide-react';
+import { getProducts, getCategories, createProduct, archiveProduct, type CreateProductPayload } from '../services/adminApi';
+import { Plus, Search, X, Loader2, Package, Check, AlertCircle, Archive } from 'lucide-react';
 
 export const ProductsPage = () => {
   const queryClient = useQueryClient();
@@ -23,6 +23,27 @@ export const ProductsPage = () => {
     seller_name: 'Apex Global Hardware',
     stock_quantity: 100,
   });
+
+  // Variant state
+  const [variantsList, setVariantsList] = useState<Array<{ attribute: string; value: string; price_surcharge: number }>>([]);
+  const [varAttr, setVarAttr] = useState('');
+  const [varVal, setVarVal] = useState('');
+  const [varSurcharge, setVarSurcharge] = useState('');
+
+  const handleAddVariant = () => {
+    if (!varAttr.trim() || !varVal.trim()) return;
+    setVariantsList([
+      ...variantsList,
+      {
+        attribute: varAttr.trim(),
+        value: varVal.trim(),
+        price_surcharge: Number(varSurcharge) || 0,
+      },
+    ]);
+    setVarAttr('');
+    setVarVal('');
+    setVarSurcharge('');
+  };
 
   const { data: products, isLoading } = useQuery({
     queryKey: ['products'],
@@ -51,12 +72,29 @@ export const ProductsPage = () => {
         seller_name: 'Apex Global Hardware',
         stock_quantity: 100,
       });
+      setVariantsList([]);
+      setVarAttr('');
+      setVarVal('');
+      setVarSurcharge('');
       setErrorMsg(null);
       setSuccessMsg('Product added successfully!');
       setTimeout(() => setSuccessMsg(null), 4000);
     },
     onError: (err: any) => {
       const detail = err?.response?.data?.detail || err?.response?.data?.message || 'Failed to create product. Please check your inputs.';
+      setErrorMsg(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: archiveProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      setSuccessMsg('Product archived successfully.');
+      setTimeout(() => setSuccessMsg(null), 3000);
+    },
+    onError: (err: any) => {
+      const detail = err?.response?.data?.detail || err?.response?.data?.message || 'Failed to archive product.';
       setErrorMsg(typeof detail === 'string' ? detail : JSON.stringify(detail));
     },
   });
@@ -82,6 +120,7 @@ export const ProductsPage = () => {
       stock_quantity: Number(formData.stock_quantity) || 100,
       seller_name: formData.seller_name || 'Apex Global Hardware',
       category_id: formData.category_id ? formData.category_id : undefined,
+      variants: variantsList,
     });
   };
 
@@ -105,6 +144,10 @@ export const ProductsPage = () => {
         <button
           onClick={() => {
             setErrorMsg(null);
+            setVariantsList([]);
+            setVarAttr('');
+            setVarVal('');
+            setVarSurcharge('');
             setIsModalOpen(true);
           }}
           className="btn-primary flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg transition-all"
@@ -153,12 +196,13 @@ export const ProductsPage = () => {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Base Price</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Unit</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-text-muted uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-text-muted">
+                  <td colSpan={8} className="px-6 py-12 text-center text-text-muted">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
                       <span>Loading products...</span>
@@ -167,7 +211,7 @@ export const ProductsPage = () => {
                 </tr>
               ) : filteredProducts?.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-text-muted">
+                  <td colSpan={8} className="px-6 py-12 text-center text-text-muted">
                     <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                     <p className="font-medium text-slate-700">No products found</p>
                     <p className="text-xs text-slate-400 mt-1">
@@ -195,11 +239,10 @@ export const ProductsPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded font-bold ${
-                        (product.stock_quantity ?? 100) > 0
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded font-bold ${(product.stock_quantity ?? 100) > 0
                           ? 'bg-emerald-50 text-emerald-700'
                           : 'bg-red-50 text-red-600'
-                      }`}>
+                        }`}>
                         {product.stock_quantity ?? 100} units
                       </span>
                     </td>
@@ -219,13 +262,33 @@ export const ProductsPage = () => {
                       {product.unit || 'unit'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-medium rounded-full ${
-                        product.status === 'ACTIVE'
+                      <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-medium rounded-full ${product.status === 'ACTIVE'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}>
+                          : (product.status === 'ARCHIVED'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200')
+                        }`}>
                         {product.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
+                      {product.status !== 'ARCHIVED' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Archive "${product.name}"? This soft-deactivates it from new quotes while preserving historical records.`)) {
+                              archiveMutation.mutate(product.id);
+                            }
+                          }}
+                          disabled={archiveMutation.isPending}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-slate-600 hover:text-amber-700 hover:bg-amber-50 rounded-md border border-slate-200 transition-colors"
+                        >
+                          <Archive className="w-3.5 h-3.5" />
+                          Archive
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 italic">Archived</span>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -434,6 +497,66 @@ export const ProductsPage = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none"
                 />
+              </div>
+
+              {/* Product Variants Setup */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Product Variants & Surcharges (Optional)
+                  </label>
+                  <span className="text-[10px] text-text-muted">e.g. Size, Pack, Capacity Tier</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Attribute (e.g. Storage)"
+                    value={varAttr}
+                    onChange={(e) => setVarAttr(e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Value (e.g. 10TB / 5-Pack)"
+                    value={varVal}
+                    onChange={(e) => setVarVal(e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs"
+                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      type="number"
+                      placeholder="+$ Surcharge"
+                      value={varSurcharge}
+                      onChange={(e) => setVarSurcharge(e.target.value)}
+                      className="px-2.5 py-1.5 bg-white border border-slate-300 rounded text-xs w-full"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddVariant}
+                      className="px-2.5 py-1.5 bg-primary hover:bg-primary/90 text-white rounded text-xs font-bold whitespace-nowrap"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+
+                {variantsList.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {variantsList.map((v, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white border border-slate-300 text-xs font-medium text-slate-800 shadow-2xs">
+                        <strong>{v.attribute}:</strong> {v.value} (+${v.price_surcharge})
+                        <button
+                          type="button"
+                          onClick={() => setVariantsList(variantsList.filter((_, i) => i !== idx))}
+                          className="text-slate-400 hover:text-red-600 font-bold ml-1"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Modal Actions */}

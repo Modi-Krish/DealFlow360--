@@ -10,6 +10,16 @@ class BidCreate(BaseModel):
     delivery_address: str = Field(..., min_length=5)
     notes: Optional[str] = None
 
+class CartItemCreate(BaseModel):
+    product_id: str
+    quantity: int = Field(default=1, ge=1)
+    proposed_price: Decimal = Field(..., gt=0)
+
+class CartCheckoutRequest(BaseModel):
+    items: List[CartItemCreate] = Field(..., min_length=1)
+    delivery_address: str = Field(..., min_length=5)
+    notes: Optional[str] = None
+
 class SellerBidAction(BaseModel):
     action: str = Field(..., pattern="^(ACCEPT|COUNTER|REJECT)$")
     counter_price: Optional[Decimal] = None
@@ -20,6 +30,15 @@ class CustomerBidAction(BaseModel):
     action: str = Field(..., pattern="^(ACCEPT|COUNTER|CANCEL)$")
     proposed_price: Optional[Decimal] = None
     notes: Optional[str] = None
+
+class BidLineItemResponse(BaseModel):
+    product_id: str
+    product_name: str
+    quantity: int
+    original_price: Decimal
+    proposed_price: Decimal
+    seller_counter_price: Optional[Decimal] = None
+    final_agreed_price: Optional[Decimal] = None
 
 class BidHistoryItemResponse(BaseModel):
     actor_role: str
@@ -39,6 +58,7 @@ class BidResponse(BaseModel):
     customer_id: str
     customer_name: str
     customer_email: str
+    items: List[BidLineItemResponse] = []
     quantity: int
     original_price: Decimal
     proposed_price: Decimal

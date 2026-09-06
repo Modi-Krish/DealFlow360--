@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProducts } from '../../admin/services/adminApi';
 import { getBids, createBid, customerBidAction, type Bid } from '../services/bidsApi';
+import { useCart } from '../../../shared/context/CartContext';
+import { CartDrawer } from '../components/CartDrawer';
 import {
   ShoppingBag,
+  ShoppingCart,
   Tag,
   Store,
   Package,
@@ -19,10 +22,12 @@ import {
   ChevronUp,
   Send,
   Loader2,
+  Download,
 } from 'lucide-react';
 
 export const MarketplacePage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { addToCart, cartCount, setIsCartOpen } = useCart();
 
   const [activeTab, setActiveTab] = useState<'catalog' | 'bids'>('catalog');
   const [searchTerm, setSearchTerm] = useState('');
@@ -178,7 +183,7 @@ export const MarketplacePage: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 self-start md:self-auto shadow-inner">
+          <div className="flex bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 self-start md:self-auto shadow-inner gap-1">
             <button
               onClick={() => setActiveTab('catalog')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
@@ -192,6 +197,19 @@ export const MarketplacePage: React.FC = () => {
               <span className="ml-1 bg-slate-900/40 px-2 py-0.5 rounded-full text-xs">
                 {products?.length || 0}
               </span>
+            </button>
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all cursor-pointer relative"
+              title="Open Procurement Cart"
+            >
+              <ShoppingCart className="w-4 h-4 text-emerald-400" />
+              <span>Procurement Cart</span>
+              {cartCount > 0 && (
+                <span className="ml-1 bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full text-xs font-black animate-pulse">
+                  {cartCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('bids')}
@@ -328,8 +346,8 @@ export const MarketplacePage: React.FC = () => {
                       </p>
                     </div>
 
-                    {/* Card Footer with Price & Bid Action */}
-                    <div className="p-5 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between gap-4">
+                    {/* Card Footer with Price & Actions */}
+                    <div className="p-5 bg-slate-50/70 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <span className="text-[11px] uppercase font-semibold text-slate-400 block tracking-wider">
                           List Price
@@ -340,14 +358,38 @@ export const MarketplacePage: React.FC = () => {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleOpenBidModal(product)}
-                        disabled={!inStock}
-                        className="btn-primary py-2 px-3.5 text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow cursor-pointer disabled:opacity-50"
-                      >
-                        <Tag className="w-3.5 h-3.5" />
-                        <span>Place Bid</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            addToCart({
+                              product_id: product.id,
+                              name: product.name,
+                              sku: product.sku,
+                              seller_id: product.seller_id || 'seller-default',
+                              seller_name: product.seller_name || 'Verified Seller',
+                              base_price: basePrice,
+                              stock_quantity: stock,
+                              unit: product.unit || 'unit',
+                            })
+                          }
+                          disabled={!inStock}
+                          className="px-3 py-2 text-xs font-bold text-slate-800 bg-white border border-slate-300 hover:bg-slate-100 hover:border-slate-400 rounded-lg transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          title="Add to Procurement Cart for Multi-Vendor Bidding"
+                        >
+                          <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Add to Cart</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleOpenBidModal(product)}
+                          disabled={!inStock}
+                          className="btn-primary py-2 px-3.5 text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow cursor-pointer disabled:opacity-50"
+                        >
+                          <Tag className="w-3.5 h-3.5" />
+                          <span>Instant Bid</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -515,11 +557,34 @@ export const MarketplacePage: React.FC = () => {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3">
-                          {bid.invoice_number && (
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-slate-800 shadow-xs">
-                              <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Bill #{bid.invoice_number}</span>
-                            </div>
+                          <a
+                            href={`/api/v1/bids/${bid.id}/pdf`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs"
+                            title="Download Official Proposal PDF"
+                          >
+                            <Download className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>PDF Proposal</span>
+                          </a>
+                          {bid.invoice_id ? (
+                            <a
+                              href={`/api/v1/billing/invoices/${bid.invoice_id}/pdf`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs"
+                              title="Download Official PDF Bill"
+                            >
+                              <Download className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>PDF Bill (#{bid.invoice_number})</span>
+                            </a>
+                          ) : (
+                            bid.invoice_number && (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-slate-800 shadow-xs">
+                                <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Bill #{bid.invoice_number}</span>
+                              </div>
+                            )
                           )}
                           {bid.fulfillment_number && (
                             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-slate-800 shadow-xs">
@@ -937,6 +1002,9 @@ export const MarketplacePage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Slide-over Multi-Vendor Cart Drawer */}
+      <CartDrawer onSuccessSubmit={(msg) => setBidSuccess(msg)} />
     </div>
   );
 };
