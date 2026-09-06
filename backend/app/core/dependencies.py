@@ -9,9 +9,34 @@ from app.models.user import User
 from app.core.permissions import user_has_permission, normalize_role
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login", auto_error=False)
 
 async def get_db():
     yield None
+
+async def get_optional_current_user(token: Optional[str] = Depends(oauth2_scheme_optional)) -> Optional[User]:
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+    except JWTError:
+        return None
+
+    try:
+        user = await User.get(PydanticObjectId(user_id))
+    except Exception:
+        user = None
+
+    if user is None:
+        return None
+    if not user.is_active or user.status == "INACTIVE":
+        return None
+
+    user.role = normalize_role(user.role)
+    return user
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     credentials_exception = HTTPException(

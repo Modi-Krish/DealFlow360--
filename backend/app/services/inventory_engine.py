@@ -16,25 +16,37 @@ class InventoryEngine:
     @staticmethod
     async def get_product_available_stock(product_id: str, warehouse_id: Optional[str] = None) -> int:
         """
-        Calculates available stock for a product:
-        Available = Physical On Hand - Reserved - Allocated.
+        Calculates available stock for a product.
+        Formula: Available = On Hand - Reserved
+        (quantity_on_hand is already reduced at order confirmation, so quantity_allocated
+        is a tracking counter only and is NOT double-subtracted here.)
         """
         try:
-            query: Dict[str, Any] = {"product_id": str(product_id)}
+            or_clauses: List[Dict[str, Any]] = [{"product_id": str(product_id)}]
+            try:
+                oid = PydanticObjectId(product_id)
+                or_clauses.append({"product.$id": oid})
+                or_clauses.append({"product": oid})
+            except Exception:
+                pass
+
             if warehouse_id:
-                query["warehouse_id"] = str(warehouse_id)
+                query: Dict[str, Any] = {"$and": [{"$or": or_clauses}, {"warehouse_id": str(warehouse_id)}]}
+            else:
+                query: Dict[str, Any] = {"$or": or_clauses}
 
             inv_docs = await Inventory.find(query).to_list()
             if inv_docs:
                 total_avail = sum(
-                    (inv.quantity_on_hand - inv.quantity_reserved - inv.quantity_allocated)
+                    max(0, (inv.quantity_on_hand or 0) - (inv.quantity_reserved or 0))
                     for inv in inv_docs
                 )
-                return max(0, total_avail)
+                if total_avail > 0:
+                    return total_avail
 
             # Fallback to Product.stock_quantity if no Inventory collection record yet
             prod = await Product.get(PydanticObjectId(product_id))
-            if prod:
+            if prod and prod.stock_quantity is not None:
                 return max(0, prod.stock_quantity)
 
             return 0
@@ -64,8 +76,11 @@ class InventoryEngine:
     ) -> bool:
         """
         Triggered when bid/order is confirmed and bill is generated.
-        Reduces physical/available stock idempotently and atomically under concurrency.
+        Uses a single atomic MongoDB find_one_and_update with the availability
+        condition embedded in the filter, making it safe under concurrent load.
         """
+        from pymongo import ReturnDocument
+
         for item in items:
             p_id = str(item.get("product_id", ""))
             qty = int(item.get("quantity", 1))
@@ -73,45 +88,91 @@ class InventoryEngine:
                 continue
 
             item_key = f"ORDER_CONFIRMED_{order_id}_{invoice_id}_{p_id}"
-            
+
             # Check idempotency per product item
             existing_tx = await InventoryTransaction.find_one(
                 InventoryTransaction.idempotency_key == item_key
             )
             if existing_tx:
-                continue # Already processed idempotently
+                continue  # Already processed idempotently
 
-            # Ensure Inventory document exists
-            inv = await Inventory.find_one({"product_id": p_id})
+            # Ensure Inventory document exists and is resolved by product_id or DBRef
+            or_clauses: List[Dict[str, Any]] = [{"product_id": p_id}]
+            try:
+                oid = PydanticObjectId(p_id)
+                or_clauses.append({"product.$id": oid})
+                or_clauses.append({"product": oid})
+            except Exception:
+                pass
+
+            inv = await Inventory.find_one({"$or": or_clauses})
             if not inv:
                 prod = await Product.get(PydanticObjectId(p_id))
-                initial_stock = prod.stock_quantity if prod else qty
+                initial_stock = prod.stock_quantity if prod and prod.stock_quantity is not None else qty
                 inv = Inventory(
                     product_id=p_id,
                     seller_id=seller_id,
-                    quantity_on_hand=initial_stock,
+                    quantity_on_hand=max(initial_stock, qty),
                     quantity_allocated=0,
                     quantity_reserved=0
                 )
                 await inv.insert()
+            else:
+                need_save = False
+                if not inv.product_id:
+                    inv.product_id = p_id
+                    need_save = True
+                if inv.quantity_reserved is None:
+                    inv.quantity_reserved = 0
+                    need_save = True
+                if inv.quantity_on_hand is None:
+                    inv.quantity_on_hand = 0
+                    need_save = True
+                if need_save:
+                    await inv.save()
 
-            # Concurrency-safe atomic check & update
-            available = inv.quantity_on_hand - inv.quantity_reserved - inv.quantity_allocated
-            if qty > available:
+            # ATOMIC compare-and-update:
+            # Filter checks: (quantity_on_hand - quantity_reserved) >= qty
+            collection = Inventory.get_motor_collection() if hasattr(Inventory, "get_motor_collection") else Inventory.get_pymongo_collection()
+            updated_doc = await collection.find_one_and_update(
+                {
+                    "_id": inv.id,
+                    "$expr": {
+                        "$gte": [
+                            {"$subtract": [
+                                {"$ifNull": ["$quantity_on_hand", 0]},
+                                {"$ifNull": ["$quantity_reserved", 0]}
+                            ]},
+                            qty
+                        ]
+                    }
+                },
+                {
+                    "$inc": {
+                        "quantity_on_hand": -qty,
+                        "quantity_allocated": qty
+                    }
+                },
+                return_document=ReturnDocument.AFTER
+            )
+
+            if updated_doc is None:
+                # Atomic condition failed — stock insufficient
+                inv_current = await Inventory.get(inv.id)
+                available = max(
+                    0,
+                    ((inv_current.quantity_on_hand or 0) - (inv_current.quantity_reserved or 0))
+                ) if inv_current else 0
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Requested quantity ({qty}) exceeds available warehouse stock ({max(0, available)})."
+                    detail=f"Requested quantity ({qty}) exceeds available warehouse stock ({available})."
                 )
 
-            prev_on_hand = inv.quantity_on_hand
-            prev_allocated = inv.quantity_allocated
-
-            new_on_hand = max(0, prev_on_hand - qty)
-            new_allocated = prev_allocated + qty
-
-            inv.quantity_on_hand = new_on_hand
-            inv.quantity_allocated = new_allocated
-            await inv.save()
+            # Reconstruct pre-update values for ledger
+            new_on_hand = updated_doc["quantity_on_hand"]
+            new_allocated = updated_doc["quantity_allocated"]
+            prev_on_hand = new_on_hand + qty
+            prev_allocated = new_allocated - qty
 
             # Sync Product stock_quantity
             prod = await Product.get(PydanticObjectId(p_id))

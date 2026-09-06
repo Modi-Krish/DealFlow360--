@@ -14,9 +14,9 @@ export const SalesLayout = () => {
     { name: 'Deals & Pipeline', path: '/seller/bids', icon: Store },
     { name: 'Approvals Queue', path: '/sales/approvals', icon: CheckCircle, perm: 'approval.view' },
     { name: 'Fulfillment Ops', path: '/sales/fulfillment', icon: Package, perm: 'fulfillment.view' },
-    { name: 'Customers', path: '/admin/customers', icon: Users, perm: 'customers.view' },
-    { name: 'Employees & Roles', path: '/seller/employees', icon: Building, perm: 'users.view' },
-    { name: 'Reports & Analytics', path: '/admin/dashboard', icon: BarChart3, perm: 'reports.view' },
+    { name: 'Customers', path: '/sales/customers', icon: Users, perm: 'customers.view' },
+    { name: 'Employees & Roles', path: '/sales/employees', icon: Building, perm: 'users.view' },
+    { name: 'Reports & Analytics', path: '/sales/reports', icon: BarChart3, perm: 'reports.view' },
   ];
 
   const navItems = candidateItems.filter(item => !item.perm || hasPermission(item.perm));

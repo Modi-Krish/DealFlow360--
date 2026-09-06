@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from beanie import PydanticObjectId
 
 from app.core.dependencies import require_role
+from app.models.product import Product
 from app.models.pricing import PriceList, PriceListItem, DiscountRule
 from app.schemas.pricing import PriceListCreate, PriceListResponse, PriceListItemCreate, PriceListItemResponse, DiscountRuleResponse, DiscountRuleUpdate
 from app.schemas.common import StandardResponse

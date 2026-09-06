@@ -6,7 +6,6 @@ import {
   Store,
   CheckCircle2,
   Clock,
-  FileText,
   Truck,
   ArrowRight,
   Send,
@@ -15,10 +14,13 @@ import {
   MessageSquare,
   Loader2,
   TrendingUp,
+  Download,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { downloadPdfFile, getBackendPdfUrl } from '../../../shared/utils/downloadPdf';
 
 export const SellerBidsPage: React.FC = () => {
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
 
@@ -32,6 +34,7 @@ export const SellerBidsPage: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [showRejectBox, setShowRejectBox] = useState<boolean>(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Query bids
   const { data: bids, isLoading } = useQuery({
@@ -50,6 +53,7 @@ export const SellerBidsPage: React.FC = () => {
       setSellerNote('');
       setIsFinalOffer(false);
       setShowRejectBox(false);
+      setActionError(null);
 
       if (variables.payload.action === 'ACCEPT') {
         setActionSuccess(
@@ -67,7 +71,10 @@ export const SellerBidsPage: React.FC = () => {
       setTimeout(() => setActionSuccess(null), 6000);
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.detail || 'Failed to process seller action');
+      const detail = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to process seller action';
+      const msg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ') : JSON.stringify(detail));
+      setActionError(msg);
+      setTimeout(() => setActionError(null), 8000);
     },
   });
 
@@ -203,6 +210,22 @@ export const SellerBidsPage: React.FC = () => {
           <button
             onClick={() => setActionSuccess(null)}
             className="text-emerald-700 hover:text-emerald-900 p-1 rounded-md"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {actionError && (
+        <div className="bg-rose-50 border border-rose-300 text-rose-900 px-5 py-4 rounded-xl flex items-center justify-between shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <XCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <span className="font-medium text-sm">{actionError}</span>
+          </div>
+          <button
+            onClick={() => setActionError(null)}
+            className="text-rose-700 hover:text-rose-900 p-1 rounded-md"
           >
             <XCircle className="w-4 h-4" />
           </button>
@@ -430,15 +453,45 @@ export const SellerBidsPage: React.FC = () => {
                   </p>
 
                   <div className="flex flex-wrap gap-3 pt-1">
-                    {selectedBid.invoice_number && (
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-bold text-slate-800 shadow-xs">
-                        <FileText className="w-4 h-4 text-emerald-600" />
-                        <span>Bill #{selectedBid.invoice_number}</span>
-                      </div>
+                    <a
+                      href={getBackendPdfUrl(`/bids/${selectedBid.id}/pdf`)}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        downloadPdfFile(`/bids/${selectedBid.id}/pdf`, `Proposal_${selectedBid.bid_number}.pdf`);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-bold text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs cursor-pointer"
+                      title="Download Official Proposal PDF"
+                    >
+                      <Download className="w-4 h-4 text-emerald-600" />
+                      <span>PDF Proposal</span>
+                    </a>
+
+                    {(selectedBid.invoice_id || selectedBid.invoice_number) && (
+                      <a
+                        href={getBackendPdfUrl(selectedBid.invoice_id ? `/billing/invoices/${selectedBid.invoice_id}/pdf` : `/bids/${selectedBid.id}/invoice-pdf`)}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const target = selectedBid.invoice_id ? `/billing/invoices/${selectedBid.invoice_id}/pdf` : `/bids/${selectedBid.id}/invoice-pdf`;
+                          downloadPdfFile(target, `Bill_${selectedBid.invoice_number || selectedBid.bid_number}.pdf`);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-bold text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs cursor-pointer"
+                        title="Download Official PDF Bill"
+                      >
+                        <Download className="w-4 h-4 text-emerald-600" />
+                        <span>PDF Bill (#{selectedBid.invoice_number})</span>
+                      </a>
                     )}
                     {selectedBid.fulfillment_number && (
                       <Link
-                        to="/ops/warehouse"
+                        to={
+                          location.pathname.startsWith('/seller')
+                            ? `/seller/warehouse?search=${selectedBid.fulfillment_number}`
+                            : `/sales/warehouse?search=${selectedBid.fulfillment_number}`
+                        }
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
                       >
                         <Truck className="w-4 h-4" />

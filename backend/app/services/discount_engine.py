@@ -73,7 +73,7 @@ class DiscountEngine:
                 })
                 
                 excess = eff_discount_percent - max_allowed_discount
-                line_risk = (excess / max_allowed_discount) * Decimal("100")
+                line_risk = excess
                 
                 total_risk_score += line_risk * (item.total_price or Decimal("100"))
             total_value += (item.total_price or Decimal("100"))

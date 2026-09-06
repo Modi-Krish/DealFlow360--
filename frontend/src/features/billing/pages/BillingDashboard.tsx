@@ -31,8 +31,9 @@ import {
   Download,
   Printer,
   PlusCircle,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react';
+import { downloadPdfFile } from '../../../shared/utils/downloadPdf';
 
 export const BillingDashboard: React.FC = () => {
   const queryClient = useQueryClient();
@@ -630,24 +631,34 @@ export const BillingDashboard: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {inv.status !== 'PAID' ? (
+                        <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() =>
-                              setPaymentModal({
-                                invoiceId: inv.id,
-                                invoiceNumber: inv.invoice_number,
-                                amount: parseFloat(inv.amount_due || inv.amount || 0)
-                              })
-                            }
-                            className="btn-primary text-xs py-1.5 px-3 font-semibold shadow-sm"
+                            onClick={() => downloadPdfFile(`/billing/invoices/${inv.id}/pdf`, `Invoice_${inv.invoice_number}.pdf`)}
+                            className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Download Invoice PDF"
                           >
-                            Record Payment
+                            <Download className="w-3.5 h-3.5 text-purple-600" />
+                            <span>PDF</span>
                           </button>
-                        ) : (
-                          <span className="text-xs font-bold text-emerald-700 flex items-center justify-end gap-1">
-                            <CheckCircle2 className="w-4 h-4" /> Settled
-                          </span>
-                        )}
+                          {inv.status !== 'PAID' ? (
+                            <button
+                              onClick={() =>
+                                setPaymentModal({
+                                  invoiceId: inv.id,
+                                  invoiceNumber: inv.invoice_number,
+                                  amount: parseFloat(inv.amount_due || inv.amount || 0)
+                                })
+                              }
+                              className="btn-primary text-xs py-1.5 px-3 font-semibold shadow-sm"
+                            >
+                              Record Payment
+                            </button>
+                          ) : (
+                            <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
+                              <CheckCircle2 className="w-4 h-4" /> Settled
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))

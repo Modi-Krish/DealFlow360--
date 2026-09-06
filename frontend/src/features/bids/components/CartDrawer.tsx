@@ -49,8 +49,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onSuccessSubmit }) => {
       }
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.detail || err?.response?.data?.message || 'Checkout failed.';
-      setCheckoutError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      const detail = err?.response?.data?.detail;
+      let msg = 'Checkout failed.';
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail)) {
+        msg = detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join('; ');
+      } else if (err?.response?.data?.message) {
+        msg = err.response.data.message;
+      } else if (err?.message) {
+        msg = err.message;
+      }
+      setCheckoutError(msg);
     },
   });
 
@@ -69,12 +79,23 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onSuccessSubmit }) => {
       return;
     }
 
+    // Front-end stock guard before sending to backend
+    const overStockItem = cartItems.find(
+      (i) => (i.stock_quantity ?? 0) > 0 && i.quantity > (i.stock_quantity ?? 0)
+    );
+    if (overStockItem) {
+      setCheckoutError(
+        `"${overStockItem.name}" only has ${overStockItem.stock_quantity} units available. Please update the quantity.`
+      );
+      return;
+    }
+
     setCheckoutError(null);
     checkoutMutation.mutate({
       items: cartItems.map((i) => ({
         product_id: i.product_id,
-        quantity: i.quantity,
-        proposed_price: Number(i.proposed_price),
+        quantity: Math.max(1, Number(i.quantity) || 1),
+        proposed_price: Number(i.proposed_price) > 0 ? Number(i.proposed_price) : Number(i.base_price || 1),
       })),
       delivery_address: deliveryAddress,
       notes: notes.trim() || undefined,
@@ -170,11 +191,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onSuccessSubmit }) => {
 
                           {/* Quantity & Proposed Price Inputs */}
                           <div className="grid grid-cols-2 gap-3 pt-1">
-                            <div>
+                             <div>
                               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
                                 Order Quantity
                               </label>
-                              <div className="flex items-center border border-slate-300 rounded-lg bg-white overflow-hidden">
+                              <div className={`flex items-center border rounded-lg bg-white overflow-hidden ${
+                                (item.stock_quantity ?? 0) > 0 && item.quantity > (item.stock_quantity ?? 0)
+                                  ? 'border-red-400 ring-1 ring-red-300/50'
+                                  : 'border-slate-300'
+                              }`}>
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -189,7 +214,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onSuccessSubmit }) => {
                                 <input
                                   type="number"
                                   min="1"
-                                  max={item.stock_quantity || 500}
+                                  max={item.stock_quantity || 9999}
                                   value={item.quantity}
                                   onChange={(e) =>
                                     updateCartItem(item.product_id, {
@@ -202,7 +227,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onSuccessSubmit }) => {
                                   type="button"
                                   onClick={() =>
                                     updateCartItem(item.product_id, {
-                                      quantity: item.quantity + 1,
+                                      quantity: Math.min(item.quantity + 1, item.stock_quantity || 9999),
                                     })
                                   }
                                   className="p-1.5 text-slate-600 hover:bg-slate-100 cursor-pointer"
@@ -210,6 +235,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onSuccessSubmit }) => {
                                   <Plus className="w-3 h-3" />
                                 </button>
                               </div>
+                              {(item.stock_quantity ?? 0) > 0 && item.quantity > (item.stock_quantity ?? 0) ? (
+                                <span className="text-[10px] text-red-600 mt-0.5 flex items-center gap-1 font-semibold">
+                                  <AlertCircle className="w-3 h-3 shrink-0" />
+                                  Only {item.stock_quantity} units available
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 mt-0.5 block">
+                                  Avail: <strong className="text-emerald-600">{item.stock_quantity ?? '—'}</strong>
+                                </span>
+                              )}
                             </div>
 
                             <div>
@@ -311,7 +346,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onSuccessSubmit }) => {
               <button
                 type="button"
                 onClick={handleCheckoutSubmit}
-                disabled={checkoutMutation.isPending}
+                disabled={checkoutMutation.isPending || cartItems.some((i) => (i.stock_quantity ?? 0) > 0 && i.quantity > (i.stock_quantity ?? 0))}
                 className="w-full btn-primary bg-emerald-600 hover:bg-emerald-700 py-3 text-sm font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
               >
                 {checkoutMutation.isPending ? (

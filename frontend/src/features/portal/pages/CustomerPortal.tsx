@@ -18,6 +18,7 @@ import {
   Truck,
   Download
 } from 'lucide-react';
+import { downloadPdfFile, getBackendPdfUrl } from '../../../shared/utils/downloadPdf';
 
 export const CustomerPortal: React.FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
@@ -437,10 +438,14 @@ export const CustomerPortal: React.FC = () => {
                   </span>
 
                   <a
-                    href={`/api/v1/bids/${q.id}/pdf`}
+                    href={getBackendPdfUrl(`/bids/${q.id}/pdf`)}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full py-2 px-3 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 rounded-lg text-xs font-bold transition-colors flex justify-center items-center gap-1.5 shadow-2xs"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      downloadPdfFile(`/bids/${q.id}/pdf`, `Proposal_${q.quotation_number || q.bid_number || 'Quotation'}.pdf`);
+                    }}
+                    className="w-full py-2 px-3 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 rounded-lg text-xs font-bold transition-colors flex justify-center items-center gap-1.5 shadow-2xs cursor-pointer"
                     title="Download PDF Proposal"
                   >
                     <Download className="w-3.5 h-3.5 text-blue-600" />

@@ -15,9 +15,9 @@ export const OpsLayout = () => {
     { name: 'Financial Reports', path: '/admin/dashboard', icon: BarChart3, perm: 'reports.view' },
   ] : [
     { name: 'Ops Dashboard', path: '/ops/dashboard', icon: LayoutDashboard },
-    { name: 'Warehouse Dispatch', path: '/ops/warehouse', icon: Truck, perm: 'warehouses.view' },
+    { name: 'Warehouse Dispatch', path: '/ops/warehouse', icon: Truck, perm: 'warehouse.view' },
     { name: 'Fulfillment Orders', path: '/ops/fulfillment', icon: PackageCheck, perm: 'fulfillment.view' },
-    { name: 'Inventory & Stock', path: '/ops/inventory', icon: PackageCheck },
+    { name: 'Inventory & Stock', path: '/ops/inventory', icon: PackageCheck, perm: 'inventory.view' },
   ];
 
   const navItems = candidateItems.filter(item => !item.perm || hasPermission(item.perm));

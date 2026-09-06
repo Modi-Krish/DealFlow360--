@@ -11,6 +11,7 @@ from app.models.audit import record_audit_log
 from app.schemas.approval import ApprovalResponse, ApprovalAction
 from app.schemas.common import StandardResponse
 from app.models.user import User
+from app.services.inventory_engine import InventoryEngine
 
 router = APIRouter()
 
@@ -134,9 +135,23 @@ async def act_on_approval(
                 reason=f"Sales Manager approved; escalated to Finance. Reason: {reason}"
             )
         else:
-            # Final approval achieved
+            # Final approval achieved — trigger inventory billing
             quotation.status = "APPROVED"
-            
+
+            qt_items_to_bill = [
+                {"product_id": (str(it.product.id) if hasattr(it.product, 'id') else str(it.product.ref.id)), "quantity": it.quantity}
+                for it in quotation.items
+                if it.product
+            ]
+            if qt_items_to_bill:
+                await InventoryEngine.confirm_and_bill_inventory(
+                    order_id=str(quotation.id),
+                    invoice_id=f"QT-APPRV-{quotation.quotation_number}",
+                    items=qt_items_to_bill,
+                    seller_id=quotation.seller_id,
+                    user_id=str(current_user.id)
+                )
+
             await record_audit_log(
                 user_id=str(current_user.id),
                 user_name=current_user.name,
@@ -147,7 +162,7 @@ async def act_on_approval(
                 resource_id=str(quotation.id),
                 old_value=old_status,
                 new_value="APPROVED",
-                reason=f"Quotation approved at {approval.level} level. Reason: {reason}"
+                reason=f"Quotation approved at {approval.level} level — inventory billing triggered. Reason: {reason}"
             )
             
     elif approval_action_str == "REJECT":

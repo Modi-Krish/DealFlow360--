@@ -10,6 +10,7 @@ import {
 import { getQuotations } from '../../sales/services/quotationApi';
 import {
   Package,
+  PackageCheck,
   Truck,
   RotateCcw,
   Warehouse as WarehouseIcon,
@@ -98,6 +99,18 @@ export const FulfillmentPage: React.FC = () => {
     },
     onError: (err: any) => {
       setFeedback({ type: 'error', message: err.response?.data?.detail || 'Failed to dispatch' });
+    }
+  });
+
+  const returnReceiptMutation = useMutation({
+    mutationFn: (orderId: string) =>
+      updateDeliveryStatus(orderId, { status: 'RETURN_RECEIVED', dispatch_notes: 'Warehouse confirmed physical receipt of returned goods. Stock restored.' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fulfillmentOrders'] });
+      setFeedback({ type: 'success', message: 'Return receipt confirmed! Warehouse stock has been fully restored.' });
+    },
+    onError: (err: any) => {
+      setFeedback({ type: 'error', message: err.response?.data?.detail || 'Failed to confirm return receipt' });
     }
   });
 
@@ -290,6 +303,10 @@ export const FulfillmentPage: React.FC = () => {
                                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                 : ord.status === 'BACKORDER'
                                 ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                : ord.status === 'RETURN_PENDING'
+                                ? 'bg-orange-100 text-orange-800 border border-orange-300'
+                                : ord.status === 'RETURN_RECEIVED'
+                                ? 'bg-teal-50 text-teal-700 border border-teal-200'
                                 : 'bg-slate-100 text-slate-700'
                             }`}
                           >
@@ -315,7 +332,7 @@ export const FulfillmentPage: React.FC = () => {
                             >
                               <RotateCcw className="w-3 h-3" /> Override
                             </button>
-                            {ord.status !== 'DISPATCHED' && ord.status !== 'DELIVERED' && (
+                            {ord.status !== 'DISPATCHED' && ord.status !== 'DELIVERED' && ord.status !== 'RETURN_PENDING' && ord.status !== 'RETURN_RECEIVED' && (
                               <button
                                 onClick={() => {
                                   setDispatchModal({ orderId: ord.id, orderNumber: ord.order_number || ord.id.substring(0, 8) });
@@ -324,6 +341,21 @@ export const FulfillmentPage: React.FC = () => {
                                 className="btn-primary px-3 py-1.5 text-xs font-semibold flex items-center gap-1"
                               >
                                 <Send className="w-3 h-3" /> Dispatch
+                              </button>
+                            )}
+                            {ord.status === 'RETURN_PENDING' && (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Confirm that warehouse physically received returned goods for order ${ord.order_number}? This will restore warehouse stock.`)) {
+                                    returnReceiptMutation.mutate(ord.id);
+                                  }
+                                }}
+                                disabled={returnReceiptMutation.isPending}
+                                className="px-2.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors shadow-sm disabled:opacity-50"
+                                title="Confirm warehouse received returned goods — restores stock"
+                              >
+                                <PackageCheck className="w-3.5 h-3.5" />
+                                {returnReceiptMutation.isPending ? 'Confirming...' : 'Confirm Return Receipt'}
                               </button>
                             )}
                           </div>

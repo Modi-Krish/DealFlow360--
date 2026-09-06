@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from beanie import PydanticObjectId
 import uuid
 
-from app.core.dependencies import get_current_user, require_permission, enforce_tenant
+from app.core.dependencies import get_current_user, get_optional_current_user, require_permission, enforce_tenant
 from app.core.permissions import Permission, normalize_role
 from app.models.product import Product, ProductVariant
 from app.models.category import Category
@@ -52,7 +52,7 @@ async def create_category(
 async def get_products(
     seller_id: Optional[str] = Query(None),
     include_archived: bool = Query(False, description="Whether to include archived products"),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_optional_current_user)
 ):
     query: dict = {}
     current_role = normalize_role(current_user.role) if current_user else "customer"

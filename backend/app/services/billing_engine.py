@@ -1,4 +1,5 @@
 from typing import Dict, Any
+from decimal import Decimal
 import uuid
 from datetime import datetime, timedelta, timezone
 from beanie import PydanticObjectId

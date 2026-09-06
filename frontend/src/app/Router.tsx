@@ -73,6 +73,22 @@ export const AppRouter = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="warehouse"
+            element={
+              <ProtectedRoute requiredPermission="warehouse.view">
+                <WarehouseDispatchPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="fulfillment"
+            element={
+              <ProtectedRoute requiredPermission="fulfillment.view">
+                <FulfillmentPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* Admin & Super Admin Routes */}
@@ -225,6 +241,46 @@ export const AppRouter = () => {
             element={
               <ProtectedRoute requiredPermission="fulfillment.view">
                 <FulfillmentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="customers"
+            element={
+              <ProtectedRoute requiredPermission="customers.view">
+                <CustomersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="employees"
+            element={
+              <ProtectedRoute requiredPermission="users.view">
+                <EmployeeManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="reports"
+            element={
+              <ProtectedRoute requiredPermission="reports.view">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="analytics"
+            element={
+              <ProtectedRoute requiredPermission="reports.view">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="warehouse"
+            element={
+              <ProtectedRoute requiredPermission="warehouse.view">
+                <WarehouseDispatchPage />
               </ProtectedRoute>
             }
           />

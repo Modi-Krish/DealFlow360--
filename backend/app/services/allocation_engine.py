@@ -14,8 +14,7 @@ class AllocationEngine:
         warehouses_used = set()
         
         # ─── PHASE 1: PRE-VALIDATION ───
-        # Check stock across all candidate warehouses for each item before modifying any stock.
-        # This prevents partial/orphaned reservations when an item has insufficient stock.
+        # Check stock across all candidate warehouses for each item.
         item_inventory_map = {}
         for item in quotation.items:
             product_id = getattr(item.product, 'id', None) or getattr(getattr(item.product, 'ref', None), 'id', None)
@@ -34,9 +33,14 @@ class AllocationEngine:
             
             # Pre-fetch warehouse references for priority & shipping cost weighting
             for inv in inventories:
-                if inv.warehouse and hasattr(inv.warehouse, 'fetch') and not hasattr(inv.warehouse, 'shipping_cost_per_kg'):
+                if inv.warehouse and not hasattr(inv.warehouse, 'shipping_cost_per_kg'):
                     try:
-                        await inv.fetch_link(Inventory.warehouse)
+                        wh_ref = getattr(inv.warehouse, 'to_ref', lambda: None)() or getattr(inv.warehouse, 'ref', None)
+                        wh_oid = getattr(wh_ref, 'id', None) or getattr(inv.warehouse, 'id', None)
+                        if wh_oid:
+                            wh_doc = await Warehouse.get(PydanticObjectId(str(wh_oid)))
+                            if wh_doc:
+                                inv.warehouse = wh_doc
                     except Exception:
                         pass
 
@@ -57,32 +61,20 @@ class AllocationEngine:
             if total_available < item.quantity:
                 shortages.append({
                     "product_id": pid_str,
+                    "product_name": getattr(item.product, 'name', f"Product-{pid_str}"),
                     "quantity_required": item.quantity,
                     "quantity_available": total_available,
                     "quantity_short": item.quantity - total_available
                 })
 
-        # If any line item is short, abort without touching inventory (atomic validation)
-        if shortages:
-            return {
-                "success": False,
-                "message": "Insufficient inventory to fulfill complete quotation",
-                "allocations": [],
-                "shortages": shortages,
-                "can_consolidate": True
-            }
-
-        # ─── PHASE 2: ATOMIC RESERVATION WITH ROLLBACK COMPENSATION ───
-        coll = Inventory.get_collection()
+        # ─── PHASE 2: ATOMIC RESERVATION WITH CONCURRENCY PROTECTION ───
+        coll = Inventory.get_motor_collection() if hasattr(Inventory, 'get_motor_collection') else Inventory.get_pymongo_collection()
         reserved_history: List[tuple] = [] # List of (inv_id, allocated_qty) for rollback
-        allocation_aborted = False
 
         for item in quotation.items:
-            if allocation_aborted:
-                break
-                
             product_id = getattr(item.product, 'id', None) or getattr(getattr(item.product, 'ref', None), 'id', None)
             pid_str = str(product_id)
+            prod_name = getattr(item.product, 'name', f"Product-{pid_str}")
             inventories = item_inventory_map.get(pid_str, [])
             
             remaining_to_allocate = item.quantity
@@ -98,15 +90,14 @@ class AllocationEngine:
 
                 can_allocate = min(available, remaining_to_allocate)
 
-                # Atomic conditional increment in MongoDB: only increment if remaining stock >= can_allocate
-                # This guarantees that concurrent transactions cannot over-allocate or cause negative stock
+                # Atomic conditional increment in MongoDB
                 update_result = await coll.update_one(
                     {
                         "_id": inv.id,
                         "$expr": {
-                            "$gte": [
-                                {"$subtract": ["$quantity_on_hand", "$quantity_allocated"]},
-                                can_allocate
+                            "$lte": [
+                                {"$add": ["$quantity_allocated", can_allocate]},
+                                "$quantity_on_hand"
                             ]
                         }
                     },
@@ -128,7 +119,6 @@ class AllocationEngine:
                         "quantity": can_allocate
                     })
 
-                    prod_name = getattr(item.product, 'name', f"Product-{pid_str}")
                     fulfillment_items.append(
                         FulfillmentItem(
                             product_name=prod_name,
@@ -137,33 +127,25 @@ class AllocationEngine:
                         )
                     )
                     remaining_to_allocate -= can_allocate
-                else:
-                    # Stock was snatched by a concurrent request, proceed to next warehouse
-                    continue
 
+            # If there's still quantity remaining for this item, record backorder fulfillment line
             if remaining_to_allocate > 0:
-                # Concurrent race condition caused stock shortage mid-allocation
-                allocation_aborted = True
-                shortages.append({
-                    "product_id": pid_str,
-                    "quantity_short": remaining_to_allocate,
-                    "reason": "Stock contention during atomic allocation"
-                })
+                fulfillment_items.append(
+                    FulfillmentItem(
+                        product_name=f"{prod_name} (Backorder)",
+                        warehouse_name="Pending Warehouse Restock",
+                        quantity=remaining_to_allocate
+                    )
+                )
 
-        # ─── PHASE 3: ROLLBACK IF ATOMIC ALLOCATION WAS ABORTED ───
-        if allocation_aborted:
-            for inv_id, qty in reserved_history:
-                try:
-                    await coll.update_one({"_id": inv_id}, {"$inc": {"quantity_allocated": -qty}})
-                except Exception:
-                    pass
-            return {
-                "success": False,
-                "message": "Stock contention or concurrent reservation prevented full allocation. Rolled back.",
-                "allocations": [],
-                "shortages": shortages,
-                "can_consolidate": True
-            }
+            allocations.append({
+                "product_id": pid_str,
+                "product_name": prod_name,
+                "requested_quantity": item.quantity,
+                "allocated_quantity": item.quantity - remaining_to_allocate,
+                "backordered_quantity": remaining_to_allocate,
+                "allocations": item_allocations
+            })
 
         is_split = len(warehouses_used) > 1
         has_shortages = len(shortages) > 0
@@ -195,19 +177,31 @@ class AllocationEngine:
             is_consolidated=False,
             can_consolidate=is_split or has_shortages,
             estimated_delivery_date=estimated_date,
-            dispatch_notes=f"Auto-split across {len(warehouses_used)} warehouse(s) with cost-optimized routing" if is_split else "Single warehouse shipment",
+            dispatch_notes=(
+                f"Backorder scheduled with partial allocation ({len(warehouses_used)} warehouse(s))"
+                if has_shortages else
+                (f"Auto-split across {len(warehouses_used)} warehouse(s) with cost-optimized routing" if is_split else "Single warehouse shipment")
+            ),
             items=fulfillment_items
         )
         await order.insert()
 
-        if not has_shortages:
-            quotation.status = "ALLOCATED"
-            await quotation.save()
+        quotation.status = "ALLOCATED"
+        await quotation.save()
+
+        msg = (
+            f"Allocated with backorders scheduled for pending items. Order #{order_num}"
+            if has_shortages else
+            f"Inventory allocated successfully across {len(warehouses_used)} warehouse(s). Order #{order_num}"
+        )
 
         return {
-            "success": not has_shortages,
+            "success": True,
             "fulfillment_order_number": order_num,
+            "status": order.status,
+            "message": msg,
             "is_split": is_split,
+            "has_shortages": has_shortages,
             "warehouses_count": len(warehouses_used),
             "allocations": allocations,
             "shortages": shortages,

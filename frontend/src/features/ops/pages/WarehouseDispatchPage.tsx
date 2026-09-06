@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getFulfillmentOrders, updateDeliveryStatus, type FulfillmentOrder } from '../../bids/services/bidsApi';
 import {
@@ -17,9 +18,10 @@ import {
 
 export const WarehouseDispatchPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
 
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
 
   // Dispatch modal state
   const [selectedOrder, setSelectedOrder] = useState<FulfillmentOrder | null>(null);

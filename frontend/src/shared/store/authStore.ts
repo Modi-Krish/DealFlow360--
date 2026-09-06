@@ -63,6 +63,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user) return false;
     const role = (user.role || '').toLowerCase();
     if (role === 'super_admin' || role === 'admin') return true;
+
+    // Operations persona inherently has operational authorization over logistics & stock
+    if (['operations', 'ops', 'warehouse_ops'].includes(role)) {
+      const opsModules = [
+        'warehouse.view', 'warehouses.view', 'warehouse.create', 'warehouse.update', 'warehouses.update',
+        'inventory.view', 'inventories.view', 'inventory.manage', 'inventory.create', 'inventory.update',
+        'fulfillment.view', 'fulfillment.split', 'fulfillment.override', 'fulfillment.backorder', 'fulfillment.consolidate',
+        'dashboard.view', 'audit_logs.view', 'products.view'
+      ];
+      if (opsModules.includes(permission)) return true;
+    }
+
+    // Seller organization owner has inherent access to view and manage their sales pipeline, quotations, warehouse dispatch & fulfillment
+    if (['seller', 'sales_manager'].includes(role)) {
+      const sellerModules = [
+        'warehouse.view', 'warehouses.view', 'inventory.view', 'inventories.view',
+        'fulfillment.view', 'quotations.view', 'approval.view', 'customers.view',
+        'users.view', 'reports.view', 'products.view', 'pricing.view', 'billing.view'
+      ];
+      if (sellerModules.includes(permission)) return true;
+    }
     
     const perms = user.permissions || [];
     if (perms.includes('*') || perms.includes(permission)) return true;
@@ -70,6 +91,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Check wildcard module match (e.g. 'quotations.*')
     const moduleName = permission.split('.')[0];
     if (perms.includes(`${moduleName}.*`)) return true;
+
+    // Singular / Plural and Feature aliases
+    const aliases: Record<string, string[]> = {
+      'warehouse.view': ['warehouses.view', 'inventory.view', 'fulfillment.view'],
+      'warehouses.view': ['warehouse.view', 'inventory.view'],
+      'warehouse.create': ['warehouses.create'],
+      'warehouses.create': ['warehouse.create'],
+      'warehouse.update': ['warehouses.update'],
+      'warehouses.update': ['warehouse.update'],
+      'inventory.view': ['inventories.view', 'warehouses.view', 'warehouse.view'],
+      'inventories.view': ['inventory.view', 'warehouse.view', 'warehouses.view'],
+      'pricing.view': ['price_lists.view', 'discounts.view'],
+      'price_lists.view': ['pricing.view'],
+      'discounts.view': ['pricing.view']
+    };
+
+    const altList = aliases[permission] || [];
+    for (const alt of altList) {
+      if (perms.includes(alt) || perms.includes(`${alt.split('.')[0]}.*`)) {
+        return true;
+      }
+    }
 
     return false;
   },

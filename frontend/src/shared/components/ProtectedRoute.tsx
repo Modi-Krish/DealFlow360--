@@ -44,6 +44,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     allowed = false;
   }
 
+  const getDashboardUrl = (role?: string) => {
+    const r = (role || '').toLowerCase();
+    if (r === 'customer') return '/marketplace';
+    if (r === 'super_admin' || r === 'admin') return '/admin/dashboard';
+    if (['operations', 'ops', 'warehouse_ops', 'finance'].includes(r)) return '/ops/dashboard';
+    return '/sales/dashboard';
+  };
+
   if (!allowed) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-6">
@@ -62,7 +70,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              to={user.role === 'customer' ? '/marketplace' : (user.role === 'super_admin' ? '/admin/dashboard' : '/sales/dashboard')}
+              to={getDashboardUrl(user.role)}
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-slate-950 font-semibold rounded-lg text-sm hover:opacity-90 transition-opacity"
             >
               <ArrowLeft className="w-4 h-4" />

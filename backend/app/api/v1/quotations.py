@@ -18,6 +18,7 @@ from app.models.audit import record_audit_log
 from app.services.pricing import PricingService
 from app.services.discount_engine import DiscountEngine
 from app.services.approval_engine import ApprovalEngine
+from app.services.inventory_engine import InventoryEngine
 
 router = APIRouter()
 
@@ -195,7 +196,10 @@ async def add_quotation_item(
         
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-        
+
+    # Server-side available stock validation before adding item to quotation
+    await InventoryEngine.validate_stock_availability(item.product_id, item.quantity)
+
     variant_str = item.variant or item.variant_id
     new_item = QuotationItem(
         product=product,
@@ -309,7 +313,22 @@ async def submit_quotation(
         quotation.approval_level = "NONE"
         await quotation.save()
         message = "Quotation auto-approved (within discount ceiling)"
-        
+
+        # Trigger idempotent inventory billing on auto-approval
+        qt_items_to_bill = [
+            {"product_id": (str(it.product.id) if hasattr(it.product, 'id') else str(it.product.ref.id)), "quantity": it.quantity}
+            for it in quotation.items
+            if it.product
+        ]
+        if qt_items_to_bill:
+            await InventoryEngine.confirm_and_bill_inventory(
+                order_id=str(quotation.id),
+                invoice_id=f"QT-AUTO-{quotation.quotation_number}",
+                items=qt_items_to_bill,
+                seller_id=quotation.seller_id,
+                user_id=str(current_user.id)
+            )
+
         await record_audit_log(
             user_id=str(current_user.id),
             user_name=current_user.name,
@@ -318,7 +337,7 @@ async def submit_quotation(
             module="quotations",
             resource_type="Quotation",
             resource_id=str(quotation.id),
-            reason="Discount within customer tier limit"
+            reason="Discount within customer tier limit — inventory billing triggered"
         )
         
     return StandardResponse(success=True, message=message, data=qt_to_response(quotation))

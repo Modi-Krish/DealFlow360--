@@ -15,7 +15,8 @@ class PricingService:
         
         for pl in price_lists:
             for item in pl.items:
-                if str(item.product.ref.id) == product_id:
+                pid = getattr(item.product, 'id', None) or getattr(getattr(item.product, 'ref', None), 'id', None)
+                if pid and str(pid) == product_id:
                     return item.custom_price
                 
         # Fallback to product base price

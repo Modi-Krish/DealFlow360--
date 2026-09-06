@@ -5,7 +5,7 @@ from decimal import Decimal
 from fastapi import APIRouter, HTTPException, Depends, Query
 from beanie import PydanticObjectId
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_optional_current_user
 from app.models.user import User, UserRole
 from app.models.product import Product
 from app.models.bid import ProductBid, BidHistoryItem, BidLineItem
@@ -76,7 +76,7 @@ def bid_to_response(doc: ProductBid) -> BidResponse:
     )
 
 @router.post("/cart-checkout", response_model=StandardResponse[List[BidResponse]])
-async def cart_checkout(payload: CartCheckoutRequest, current_user: Optional[User] = Depends(get_current_user)):
+async def cart_checkout(payload: CartCheckoutRequest, current_user: Optional[User] = Depends(get_optional_current_user)):
     """
     Multi-Vendor Cart Checkout:
     Groups cart items by seller_id.
@@ -192,6 +192,8 @@ async def download_bid_pdf(bid_id: str):
     except Exception:
         bid = None
     if not bid:
+        bid = await ProductBid.find_one({"bid_number": bid_id})
+    if not bid:
         raise HTTPException(status_code=404, detail="Quotation/Bid not found")
 
     bid_dict = {
@@ -238,8 +240,36 @@ async def download_bid_pdf(bid_id: str):
         headers={"Content-Disposition": f"inline; filename={filename}"}
     )
 
+@router.get("/{bid_id}/invoice-pdf")
+async def download_bid_invoice_pdf(bid_id: str):
+    try:
+        bid = await ProductBid.get(PydanticObjectId(bid_id))
+    except Exception:
+        bid = None
+    if not bid:
+        bid = await ProductBid.find_one({"bid_number": bid_id})
+    if not bid:
+        raise HTTPException(status_code=404, detail="Quotation/Bid not found")
+
+    from app.models.billing import Invoice
+    from app.api.v1.billing import download_invoice_pdf
+
+    inv = None
+    if bid.invoice_id:
+        try:
+            inv = await Invoice.get(PydanticObjectId(bid.invoice_id))
+        except Exception:
+            inv = None
+    if not inv and bid.invoice_number:
+        inv = await Invoice.find_one({"invoice_number": bid.invoice_number})
+
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invoice not found or not yet generated for this bid")
+
+    return await download_invoice_pdf(str(inv.id))
+
 @router.post("/", response_model=StandardResponse[BidResponse])
-async def create_bid(payload: BidCreate, current_user: Optional[User] = Depends(get_current_user)):
+async def create_bid(payload: BidCreate, current_user: Optional[User] = Depends(get_optional_current_user)):
     try:
         product = await Product.get(PydanticObjectId(payload.product_id))
     except Exception:
@@ -392,7 +422,7 @@ async def _trigger_agreement_billing_and_dispatch(bid: ProductBid, agreed_price:
 async def seller_bid_action(
     bid_id: str,
     action: SellerBidAction,
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_optional_current_user)
 ):
     try:
         bid = await ProductBid.get(PydanticObjectId(bid_id))

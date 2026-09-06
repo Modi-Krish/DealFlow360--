@@ -212,6 +212,8 @@ async def download_invoice_pdf(invoice_id: str):
     except Exception:
         inv = None
     if not inv:
+        inv = await Invoice.find_one({"invoice_number": invoice_id})
+    if not inv:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     customer_name = "Valued Customer"
@@ -368,8 +370,8 @@ async def get_credit_notes(current_user: User = Depends(get_current_user)):
         res.append({
             "id": str(c.id),
             "credit_note_number": c.credit_note_number,
-            "order_id": str(c.order.ref.id) if c.order and hasattr(c.order, 'ref') else None,
-            "customer_id": str(c.customer.ref.id) if c.customer and hasattr(c.customer, 'ref') else None,
+            "order_id": str(getattr(c.order, 'id', None) or getattr(getattr(c.order, 'ref', None), 'id', None) or ''),
+            "customer_id": str(getattr(c.customer, 'id', None) or getattr(getattr(c.customer, 'ref', None), 'id', None) or ''),
             "subscription_id": c.subscription_id,
             "amount": float(c.amount),
             "reason": c.reason,

@@ -15,7 +15,6 @@ import {
   AlertCircle,
   X,
   Search,
-  FileText,
   Truck,
   MessageSquare,
   ChevronDown,
@@ -24,6 +23,7 @@ import {
   Loader2,
   Download,
 } from 'lucide-react';
+import { downloadPdfFile, getBackendPdfUrl } from '../../../shared/utils/downloadPdf';
 
 export const MarketplacePage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -127,6 +127,11 @@ export const MarketplacePage: React.FC = () => {
     }
     if (bidQuantity <= 0) {
       setBidError('Quantity must be at least 1.');
+      return;
+    }
+    const maxStock = selectedProduct?.stock_quantity ?? 0;
+    if (maxStock > 0 && bidQuantity > maxStock) {
+      setBidError(`Only ${maxStock} units are currently available. Please reduce your quantity.`);
       return;
     }
 
@@ -558,34 +563,36 @@ export const MarketplacePage: React.FC = () => {
 
                         <div className="flex flex-wrap items-center gap-3">
                           <a
-                            href={`/api/v1/bids/${bid.id}/pdf`}
+                            href={getBackendPdfUrl(`/bids/${bid.id}/pdf`)}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              downloadPdfFile(`/bids/${bid.id}/pdf`, `Proposal_${bid.bid_number}.pdf`);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs cursor-pointer"
                             title="Download Official Proposal PDF"
                           >
                             <Download className="w-3.5 h-3.5 text-emerald-600" />
                             <span>PDF Proposal</span>
                           </a>
-                          {bid.invoice_id ? (
+                          {(bid.invoice_id || bid.invoice_number) ? (
                             <a
-                              href={`/api/v1/billing/invoices/${bid.invoice_id}/pdf`}
+                              href={getBackendPdfUrl(bid.invoice_id ? `/billing/invoices/${bid.invoice_id}/pdf` : `/bids/${bid.id}/invoice-pdf`)}
                               target="_blank"
                               rel="noreferrer"
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const target = bid.invoice_id ? `/billing/invoices/${bid.invoice_id}/pdf` : `/bids/${bid.id}/invoice-pdf`;
+                                downloadPdfFile(target, `Bill_${bid.invoice_number || bid.bid_number}.pdf`);
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs cursor-pointer"
                               title="Download Official PDF Bill"
                             >
                               <Download className="w-3.5 h-3.5 text-emerald-600" />
                               <span>PDF Bill (#{bid.invoice_number})</span>
                             </a>
-                          ) : (
-                            bid.invoice_number && (
-                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-slate-800 shadow-xs">
-                                <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Bill #{bid.invoice_number}</span>
-                              </div>
-                            )
-                          )}
+                          ) : null}
                           {bid.fulfillment_number && (
                             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-slate-800 shadow-xs">
                               <Truck className="w-3.5 h-3.5 text-blue-600" />
@@ -852,15 +859,26 @@ export const MarketplacePage: React.FC = () => {
                   <input
                     type="number"
                     min="1"
-                    max={selectedProduct.stock_quantity || 500}
+                    max={selectedProduct.stock_quantity || 9999}
                     required
                     value={bidQuantity}
                     onChange={(e) => setBidQuantity(Math.max(1, Number(e.target.value)))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-semibold"
+                    className={`w-full px-3 py-2 border rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:border-emerald-500 font-semibold transition-all ${
+                      (selectedProduct.stock_quantity ?? 0) > 0 && bidQuantity > (selectedProduct.stock_quantity ?? 0)
+                        ? 'border-red-400 ring-2 ring-red-300/40 bg-red-50'
+                        : 'border-slate-300 focus:ring-emerald-500/20'
+                    }`}
                   />
-                  <span className="text-[11px] text-slate-400 mt-1 block">
-                    Available: {selectedProduct.stock_quantity || 100}
-                  </span>
+                  {(selectedProduct.stock_quantity ?? 0) > 0 && bidQuantity > (selectedProduct.stock_quantity ?? 0) ? (
+                    <span className="text-[11px] text-red-600 mt-1 flex items-center gap-1 font-semibold">
+                      <AlertCircle className="w-3 h-3 shrink-0" />
+                      Only {selectedProduct.stock_quantity} units are currently available.
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 mt-1 block">
+                      Available: <strong className="text-emerald-600">{selectedProduct.stock_quantity ?? '—'}</strong>
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -987,7 +1005,7 @@ export const MarketplacePage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={createBidMutation.isPending}
+                  disabled={createBidMutation.isPending || ((selectedProduct.stock_quantity ?? 0) > 0 && bidQuantity > (selectedProduct.stock_quantity ?? 0))}
                   className="btn-primary text-xs font-bold py-2 px-4 flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
                 >
                   {createBidMutation.isPending ? (
